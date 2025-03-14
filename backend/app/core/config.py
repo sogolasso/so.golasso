@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     # Database (Required)
     DATABASE_URL: str
     
-    # JWT (Required)
-    SECRET_KEY: str
+    # JWT (Optional for now)
+    SECRET_KEY: Optional[str] = "dummy-secret-key-for-development"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Social Media API Keys (Optional for launch)
@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     # CORS settings
     FRONTEND_URL: str = "https://sogolasso.me"
     
-    # AWS S3 settings for media storage (Required for production)
+    # AWS S3 settings for media storage (Optional for now)
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_BUCKET_NAME: Optional[str] = None
@@ -85,8 +85,8 @@ class Settings(BaseSettings):
     # Email settings (Optional for launch)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str
-    SMTP_PASSWORD: str
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
     NOTIFICATION_EMAIL: Optional[str] = None
     
     class Config:
