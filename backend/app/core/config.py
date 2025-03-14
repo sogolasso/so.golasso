@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     TWITTER_ACCESS_TOKEN: Optional[str] = None
     TWITTER_ACCESS_TOKEN_SECRET: Optional[str] = None
     
+    # Instagram Credentials (Optional for launch)
+    INSTAGRAM_USERNAME: Optional[str] = None
+    INSTAGRAM_PASSWORD: Optional[str] = None
+    
     # OpenAI (Required)
     OPENAI_API_KEY: str
     MAX_MONTHLY_AI_COST: float = 100.0
