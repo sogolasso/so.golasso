@@ -1,6 +1,6 @@
 import logging
 import tweepy
-from instagram_private_api import Client
+import instaloader
 from typing import List, Dict
 from datetime import datetime, timedelta
 from app.core.config import settings
@@ -19,11 +19,26 @@ class SocialScraper:
             access_token_secret=settings.TWITTER_ACCESS_TOKEN_SECRET
         )
         
-        # Instagram API credentials
-        self.instagram_client = Client(
-            settings.INSTAGRAM_USERNAME,
-            settings.INSTAGRAM_PASSWORD
+        # Instagram client
+        self.instagram = instaloader.Instaloader(
+            quiet=True,
+            download_pictures=False,
+            download_videos=False,
+            download_video_thumbnails=False,
+            download_geotags=False,
+            download_comments=False,
+            save_metadata=False
         )
+        
+        # Try to login to Instagram
+        try:
+            if settings.INSTAGRAM_USERNAME and settings.INSTAGRAM_PASSWORD:
+                self.instagram.login(settings.INSTAGRAM_USERNAME, settings.INSTAGRAM_PASSWORD)
+                logger.info("Successfully logged in to Instagram")
+            else:
+                logger.warning("Instagram credentials not provided, will scrape without authentication")
+        except Exception as e:
+            logger.error(f"Failed to login to Instagram: {str(e)}")
         
         # Rate limiting settings
         self.twitter_rate_limit = {
@@ -147,28 +162,28 @@ class SocialScraper:
         try:
             for username in self.instagram_accounts:
                 try:
-                    user_feed = self.instagram_client.feed_user(username)
-                    posts = user_feed.get_items()[:5]  # Reduced from 10 to save on API calls
+                    profile = instaloader.Profile.from_username(self.instagram.context, username)
+                    posts = list(profile.get_posts())[:5]  # Get latest 5 posts
                     
                     for post in posts:
                         # Only include posts with significant engagement
-                        if post.like_count > 100 or post.comment_count > 20:
-                            caption = post.caption['text'] if post.caption else ''
+                        if post.likes + post.comments > 100:
+                            caption = post.caption if post.caption else ''
                             articles.append({
                                 'title': caption[:100] + '...' if len(caption) > 100 else caption,
                                 'content': caption,
-                                'source_url': f"https://instagram.com/p/{post.code}",
+                                'source_url': f"https://instagram.com/p/{post.shortcode}",
                                 'source_type': 'instagram',
-                                'published_at': datetime.fromtimestamp(post.taken_at),
+                                'published_at': post.date_local,
                                 'author': username,
-                                'engagement_count': post.like_count + post.comment_count
+                                'engagement_count': post.likes + post.comments
                             })
                 except Exception as e:
                     logger.error(f"Error scraping Instagram user {username}: {str(e)}")
                     continue
                     
-                # Add a small delay between accounts
-                time.sleep(1)
+                # Add a small delay between accounts to avoid rate limiting
+                time.sleep(2)
                         
         except Exception as e:
             logger.error(f"Error scraping Instagram: {str(e)}")
