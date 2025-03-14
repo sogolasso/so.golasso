@@ -6,6 +6,8 @@ from app.db.session import get_db
 from app.models.article import Article
 from app.schemas.article import ArticleCreate, ArticleInDB, ArticleList, ArticleUpdate
 from app.models.enums import ArticleStatus
+from datetime import datetime, timedelta
+import random
 
 router = APIRouter()
 
@@ -72,4 +74,48 @@ def list_articles_by_category(
     total = query.count()
     articles = query.order_by(desc(Article.published_at)).offset(skip).limit(limit).all()
     
-    return ArticleList(items=articles, total=total) 
+    return ArticleList(items=articles, total=total)
+
+@router.post("/test/add-articles/")
+def add_test_articles(db: Session = Depends(get_db)):
+    """
+    Add test articles to the database.
+    """
+    try:
+        # Categories for test articles
+        categories = ["Notícias", "Análises", "Opinião", "Memes", "Táticas"]
+        
+        # Sample titles and content
+        titles = [
+            "Palmeiras vence clássico com gol nos acréscimos",
+            "Análise tática: Como o Flamengo venceu o Derby",
+            "Opinião: O futuro do futebol brasileiro",
+            "Meme do dia: Torcedor dormindo no estádio",
+            "Táticas: Como o 4-3-3 está dominando o futebol"
+        ]
+        
+        # Add 10 test articles
+        added_articles = []
+        for i in range(10):
+            category = random.choice(categories)
+            title = random.choice(titles)
+            article = Article(
+                title=title,
+                slug=f"test-article-{i+1}",
+                content=f"Este é um artigo de teste {i+1} na categoria {category}. Aqui vai o conteúdo do artigo...",
+                category=category,
+                author_style="NARRACAO",
+                status=ArticleStatus.PUBLISHED,
+                published_at=datetime.utcnow() - timedelta(days=i),
+                created_at=datetime.utcnow() - timedelta(days=i+1),
+                updated_at=datetime.utcnow() - timedelta(days=i)
+            )
+            db.add(article)
+            added_articles.append({"title": title, "category": category})
+        
+        db.commit()
+        return {"message": "Test articles added successfully!", "articles": added_articles}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e)) 
