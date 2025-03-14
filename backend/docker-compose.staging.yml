@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - web
+      - frontend
+    networks:
+      - frontend
+      - backend
+
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    expose:
+      - "8000"
+    environment:
+      - ENVIRONMENT=staging
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/football_digest_staging
+      - REDIS_URL=redis://redis:6379/1
+      - DOMAIN=staging.sogolassos.me
+      - DEBUG=true
+    depends_on:
+      - db
+      - redis
+    networks:
+      - backend
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        - NEXT_PUBLIC_API_URL=https://staging.sogolassos.me/api
+        - NEXT_PUBLIC_ENV=staging
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - frontend
+
+  scheduler:
+    build: .
+    command: python scripts/schedule_news_fetch.py
+    volumes:
+      - .:/app
+    environment:
+      - ENVIRONMENT=staging
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/football_digest_staging
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+    networks:
+      - backend
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=football_digest_staging
+    expose:
+      - "5432"
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    command: redis-server --appendonly yes
+    expose:
+      - "6379"
+    volumes:
+      - redis_staging_data:/data
+    networks:
+      - backend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data: 

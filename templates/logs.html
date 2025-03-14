@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Só Golasso! - Scraper Logs</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-futbol me-2"></i>
+                Só Golasso! Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/logs">Logs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/config">Configuration</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Scraper Logs</h4>
+                        <button class="btn btn-secondary btn-sm" id="refresh-logs">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container">
+                            <pre id="log-content" class="log-content">Loading logs...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-5 py-3 bg-dark text-center text-light">
+        <div class="container">
+            <p>Só Golasso! Football Scraper &copy; 2023</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to load logs
+            function loadLogs() {
+                // In a real implementation, this would fetch logs from the server
+                // For this example, we'll read the log file contents
+                fetch('/api/logs')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error fetching logs');
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        document.getElementById('log-content').textContent = data || 'No logs available';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('log-content').textContent = 
+                            'Error loading logs. Please check if the log file exists and is accessible.';
+                    });
+            }
+            
+            // Load logs when the page loads
+            loadLogs();
+            
+            // Set up refresh button
+            document.getElementById('refresh-logs').addEventListener('click', loadLogs);
+        });
+    </script>
+</body>
+</html>

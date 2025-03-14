@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Só Golasso - Scraper Configuration</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom">
+            <a href="/" class="d-flex align-items-center text-body-emphasis text-decoration-none">
+                <span class="fs-4">Só Golasso - Brazilian Football Scraper</span>
+            </a>
+            <nav class="mt-2">
+                <ul class="nav nav-pills">
+                    <li class="nav-item"><a href="/" class="nav-link">Dashboard</a></li>
+                    <li class="nav-item"><a href="/logs" class="nav-link">Logs</a></li>
+                    <li class="nav-item"><a href="/config" class="nav-link active">Configuration</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Scraper Settings</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="scraperSettingsForm">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="newsInterval" class="form-label">News Scraper Interval (hours)</label>
+                                    <input type="number" class="form-control" id="newsInterval" min="1" max="24">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="twitterInterval" class="form-label">Twitter Scraper Interval (hours)</label>
+                                    <input type="number" class="form-control" id="twitterInterval" min="1" max="24">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="instagramInterval" class="form-label">Instagram Scraper Interval (hours)</label>
+                                    <input type="number" class="form-control" id="instagramInterval" min="1" max="24">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxPostsPerSource" class="form-label">Max Posts Per Source</label>
+                                <input type="number" class="form-control" id="maxPostsPerSource" min="1" max="20">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Scraper Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>News Sources</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="newsSourcesForm">
+                            <div id="newsSources" class="mb-3">
+                                <!-- Sources will be added here dynamically -->
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save News Sources</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Twitter Accounts</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="twitterAccountsForm">
+                            <div id="twitterAccounts" class="mb-3">
+                                <!-- Accounts will be added here dynamically -->
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Twitter Accounts</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Instagram Accounts</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="instagramAccountsForm">
+                            <div id="instagramAccounts" class="mb-3">
+                                <!-- Accounts will be added here dynamically -->
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Instagram Accounts</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/config.js"></script>
+</body>
+</html>

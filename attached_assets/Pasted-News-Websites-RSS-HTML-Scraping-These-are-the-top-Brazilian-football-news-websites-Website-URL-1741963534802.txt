@@ -1,0 +1,71 @@
+News Websites (RSS + HTML Scraping)
+These are the top Brazilian football news websites:
+
+Website	URL	Scraping Method
+Globo Esporte	https://ge.globo.com/	RSS + HTML
+ESPN Brasil	https://www.espn.com.br/	RSS + HTML
+Lance!	https://www.lance.com.br/	RSS + HTML
+UOL Esporte	https://www.uol.com.br/esporte/	HTML
+Terra Esportes	https://www.terra.com.br/esportes/futebol/	HTML
+Goal Brasil	https://www.goal.com/br	HTML
+Trivela	https://trivela.com.br/	HTML
+FootStats	https://www.footstats.com.br/	HTML
+✅ Scraping Approach:
+
+First priority: RSS feeds (if available).
+If no RSS, use BeautifulSoup or Scrapy to extract headlines, summaries, and article links.
+2️⃣ Twitter Profiles (API Scraping)
+We’ll track official club accounts, journalists, and football influencers.
+
+🏆 Club Twitter Accounts
+Team	Twitter Handle
+Flamengo	@Flamengo
+Palmeiras	@Palmeiras
+São Paulo	@SaoPauloFC
+Corinthians	@Corinthians
+Grêmio	@Gremio
+Internacional	@SCInternacional
+Fluminense	@FluminenseFC
+Botafogo	@Botafogo
+Vasco	@VascodaGama
+Santos	@SantosFC
+🎤 Journalists & Influencers
+Name	Twitter Handle
+Mauro Cezar	@maurocezar
+Jorge Nicola	@jorgenicola
+Benjamin Back	@benjaminback
+André Rizek	@andrizek
+PVC (Paulo Vinicius Coelho)	@PVC
+Rica Perrone	@RicaPerrone
+Arnaldo Ribeiro	@ArnaldoJRibeiro
+Eduardo Tironi	@etironi
+✅ Scraping Approach:
+
+Use Tweepy (Twitter API) to fetch recent tweets from these accounts.
+Extract tweet text, timestamp, engagement (likes/retweets).
+Filter for hashtags like #Brasileirão, #Flamengo, #Palmeiras, #Libertadores.
+3️⃣ Instagram Profiles (API or Selenium Scraping)
+We’ll monitor official club accounts, player pages, and influencers.
+
+🏆 Club Instagram Accounts
+Team	Instagram Handle
+Flamengo	@flamengo
+Palmeiras	@palmeiras
+São Paulo	@saopaulofc
+Corinthians	@corinthians
+Grêmio	@gremio
+Internacional	@scinternacional
+Fluminense	@fluminensefc
+Botafogo	@botafogo
+Vasco	@vascodagama
+Santos	@santosfc
+🎤 Players & Influencers
+Name	Instagram Handle
+Neymar Jr	@neymarjr
+Gabriel Jesus	@dejesusoficial
+Gabigol	@gabigol
+Richarlison	@richarlison
+Casemiro	@casemiro
+Ronaldinho Gaúcho	@ronaldinho
+Benjamin Back	@benjaminback
+✅ Scraping Approach:

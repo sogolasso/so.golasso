@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+    --font-montserrat: 'Montserrat', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .article-card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .nav-link {
+    @apply text-white hover:text-golasso-300 transition-colors duration-200;
+  }
+  
+  .btn-primary {
+    @apply bg-golasso-500 text-white px-4 py-2 rounded-md hover:bg-golasso-600 transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-pitch-light text-white px-4 py-2 rounded-md hover:bg-pitch-dark transition-colors duration-200;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .gradient-overlay {
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.7));
+  }
+} 

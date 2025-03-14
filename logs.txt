@@ -1,0 +1,263 @@
+2025-03-14 10:36:03,476 - scheduler - INFO - Starting the scraper scheduler...
+2025-03-14 10:36:03,477 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:03,477 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:03,477 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:03,478 - apscheduler.scheduler - INFO - Added job "fetch_news" to job store "default"
+2025-03-14 10:36:03,478 - apscheduler.scheduler - INFO - Added job "fetch_tweets" to job store "default"
+2025-03-14 10:36:03,478 - apscheduler.scheduler - INFO - Added job "fetch_instagram_posts" to job store "default"
+2025-03-14 10:36:03,478 - apscheduler.scheduler - INFO - Scheduler started
+2025-03-14 10:36:03,479 - scheduler - INFO - Scheduler started successfully
+2025-03-14 10:36:03,479 - apscheduler.executors.default - INFO - Running job "fetch_news (trigger: interval[3:00:00], next run at: 2025-03-14 10:36:03 UTC)" (scheduled at 2025-03-14 10:36:03.476244+00:00)
+2025-03-14 10:36:03,481 - news_scraper - INFO - Starting news scraping process...
+2025-03-14 10:36:03,481 - news_scraper - INFO - Fetching news from globo_esporte...
+2025-03-14 10:36:03,916 - news_scraper - INFO - Successfully fetched 0 news items from globo_esporte
+2025-03-14 10:36:03,916 - news_scraper - INFO - Fetching news from espn_brasil...
+2025-03-14 10:36:07,508 - news_scraper - INFO - Successfully fetched 17 news items from espn_brasil
+2025-03-14 10:36:07,508 - news_scraper - INFO - Fetching news from lance...
+2025-03-14 10:36:07,622 - news_scraper - INFO - Successfully fetched 17 news items from lance
+2025-03-14 10:36:07,624 - firebase_handler - WARNING - Firebase service account credentials not found, using project ID only
+2025-03-14 10:36:07,625 - firebase_handler - INFO - Firebase initialized with project ID: so-golasso
+2025-03-14 10:36:07,630 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:09,233 - scheduler - INFO - Starting the scraper scheduler...
+2025-03-14 10:36:09,234 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:09,234 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:09,234 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:09,234 - apscheduler.scheduler - INFO - Added job "fetch_news" to job store "default"
+2025-03-14 10:36:09,234 - apscheduler.scheduler - INFO - Added job "fetch_tweets" to job store "default"
+2025-03-14 10:36:09,235 - apscheduler.scheduler - INFO - Added job "fetch_instagram_posts" to job store "default"
+2025-03-14 10:36:09,235 - apscheduler.scheduler - INFO - Scheduler started
+2025-03-14 10:36:09,235 - scheduler - INFO - Scheduler started successfully
+2025-03-14 10:36:09,235 - apscheduler.executors.default - INFO - Running job "fetch_news (trigger: interval[3:00:00], next run at: 2025-03-14 10:36:09 UTC)" (scheduled at 2025-03-14 10:36:09.233877+00:00)
+2025-03-14 10:36:09,236 - news_scraper - INFO - Starting news scraping process...
+2025-03-14 10:36:09,236 - news_scraper - INFO - Fetching news from globo_esporte...
+2025-03-14 10:36:09,482 - news_scraper - INFO - Successfully fetched 0 news items from globo_esporte
+2025-03-14 10:36:09,482 - news_scraper - INFO - Fetching news from espn_brasil...
+2025-03-14 10:36:10,180 - news_scraper - INFO - Successfully fetched 17 news items from espn_brasil
+2025-03-14 10:36:10,180 - news_scraper - INFO - Fetching news from lance...
+2025-03-14 10:36:10,259 - news_scraper - INFO - Successfully fetched 17 news items from lance
+2025-03-14 10:36:10,262 - firebase_handler - WARNING - Firebase service account credentials not found, using project ID only
+2025-03-14 10:36:10,262 - firebase_handler - INFO - Firebase initialized with project ID: so-golasso
+2025-03-14 10:36:10,264 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:11,241 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:13,296 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:13,299 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:14,287 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:16,335 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:20,054 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:28,848 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:28,849 - google.auth._default - WARNING - No project ID could be determined. Consider running `gcloud config set project` or setting the GOOGLE_CLOUD_PROJECT environment variable
+2025-03-14 10:36:37,297 - scheduler - INFO - Starting the scraper scheduler...
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Added job "fetch_news" to job store "default"
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Added job "fetch_tweets" to job store "default"
+2025-03-14 10:36:37,298 - apscheduler.scheduler - INFO - Added job "fetch_instagram_posts" to job store "default"
+2025-03-14 10:36:37,299 - apscheduler.scheduler - INFO - Scheduler started
+2025-03-14 10:36:37,299 - scheduler - INFO - Scheduler started successfully
+2025-03-14 10:36:37,299 - apscheduler.executors.default - INFO - Running job "fetch_news (trigger: interval[3:00:00], next run at: 2025-03-14 13:36:37 UTC)" (scheduled at 2025-03-14 10:36:37.297772+00:00)
+2025-03-14 10:36:37,300 - news_scraper - INFO - Starting news scraping process...
+2025-03-14 10:36:37,300 - news_scraper - INFO - Fetching news from globo_esporte...
+2025-03-14 10:36:37,434 - news_scraper - INFO - Successfully fetched 0 news items from globo_esporte
+2025-03-14 10:36:37,435 - news_scraper - INFO - Fetching news from espn_brasil...
+2025-03-14 10:36:39,567 - news_scraper - INFO - Successfully fetched 17 news items from espn_brasil
+2025-03-14 10:36:39,567 - news_scraper - INFO - Fetching news from lance...
+2025-03-14 10:36:39,643 - news_scraper - INFO - Successfully fetched 17 news items from lance
+2025-03-14 10:36:39,645 - firebase_handler - WARNING - Firebase service account credentials not found, using project ID only
+2025-03-14 10:36:39,646 - firebase_handler - INFO - Firebase initialized with project ID: so-golasso
+2025-03-14 10:36:39,648 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:40,577 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:42,578 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:36:42,581 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:43,630 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:45,443 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:49,795 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:57,673 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:36:57,673 - google.auth._default - WARNING - No project ID could be determined. Consider running `gcloud config set project` or setting the GOOGLE_CLOUD_PROJECT environment variable
+2025-03-14 10:37:11,938 - grpc._plugin_wrapping - ERROR - AuthMetadataPluginCallback "<google.auth.transport.grpc.AuthMetadataPlugin object at 0x7f1b25c0a850>" raised exception!
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 126, in refresh
+    self._retrieve_info(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 99, in _retrieve_info
+    info = _metadata.get_service_account_info(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 338, in get_service_account_info
+    return get(request, path, params={"recursive": "true"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 235, in get
+    raise exceptions.TransportError(
+google.auth.exceptions.TransportError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b25cdf1d0>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/grpc/_plugin_wrapping.py", line 105, in __call__
+    self._metadata_plugin(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 95, in __call__
+    callback(self._get_authorization_headers(context), None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 81, in _get_authorization_headers
+    self._credentials.before_request(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 239, in before_request
+    self._blocking_refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 202, in _blocking_refresh
+    self.refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 132, in refresh
+    raise new_exc from caught_exc
+google.auth.exceptions.RefreshError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b25cdf1d0>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+2025-03-14 10:37:26,950 - grpc._plugin_wrapping - ERROR - AuthMetadataPluginCallback "<google.auth.transport.grpc.AuthMetadataPlugin object at 0x7f1b25c0a850>" raised exception!
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 126, in refresh
+    self._retrieve_info(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 99, in _retrieve_info
+    info = _metadata.get_service_account_info(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 338, in get_service_account_info
+    return get(request, path, params={"recursive": "true"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 235, in get
+    raise exceptions.TransportError(
+google.auth.exceptions.TransportError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b2430e650>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/grpc/_plugin_wrapping.py", line 105, in __call__
+    self._metadata_plugin(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 95, in __call__
+    callback(self._get_authorization_headers(context), None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 81, in _get_authorization_headers
+    self._credentials.before_request(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 239, in before_request
+    self._blocking_refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 202, in _blocking_refresh
+    self.refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 132, in refresh
+    raise new_exc from caught_exc
+google.auth.exceptions.RefreshError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b2430e650>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+2025-03-14 10:37:42,529 - grpc._plugin_wrapping - ERROR - AuthMetadataPluginCallback "<google.auth.transport.grpc.AuthMetadataPlugin object at 0x7f1b25c0a850>" raised exception!
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 126, in refresh
+    self._retrieve_info(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 99, in _retrieve_info
+    info = _metadata.get_service_account_info(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 338, in get_service_account_info
+    return get(request, path, params={"recursive": "true"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 235, in get
+    raise exceptions.TransportError(
+google.auth.exceptions.TransportError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b24320490>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/grpc/_plugin_wrapping.py", line 105, in __call__
+    self._metadata_plugin(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 95, in __call__
+    callback(self._get_authorization_headers(context), None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 81, in _get_authorization_headers
+    self._credentials.before_request(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 239, in before_request
+    self._blocking_refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 202, in _blocking_refresh
+    self.refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 132, in refresh
+    raise new_exc from caught_exc
+google.auth.exceptions.RefreshError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b24320490>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+2025-03-14 10:37:57,686 - firebase_handler - ERROR - Error saving data to Firebase: 504 Deadline Exceeded
+2025-03-14 10:37:57,686 - news_scraper - INFO - Successfully saved 17 news items to Firebase
+2025-03-14 10:37:57,686 - news_scraper - INFO - Successfully saved 17 news items to data/news_20250314_103639.json
+2025-03-14 10:37:57,686 - apscheduler.executors.default - INFO - Job "fetch_news (trigger: interval[3:00:00], next run at: 2025-03-14 13:36:37 UTC)" executed successfully
+2025-03-14 10:37:58,165 - grpc._plugin_wrapping - ERROR - AuthMetadataPluginCallback "<google.auth.transport.grpc.AuthMetadataPlugin object at 0x7f1b25c0a850>" raised exception!
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 126, in refresh
+    self._retrieve_info(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 99, in _retrieve_info
+    info = _metadata.get_service_account_info(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 338, in get_service_account_info
+    return get(request, path, params={"recursive": "true"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/_metadata.py", line 235, in get
+    raise exceptions.TransportError(
+google.auth.exceptions.TransportError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b25ce67d0>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/grpc/_plugin_wrapping.py", line 105, in __call__
+    self._metadata_plugin(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 95, in __call__
+    callback(self._get_authorization_headers(context), None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/transport/grpc.py", line 81, in _get_authorization_headers
+    self._credentials.before_request(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 239, in before_request
+    self._blocking_refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/credentials.py", line 202, in _blocking_refresh
+    self.refresh(request)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/google/auth/compute_engine/credentials.py", line 132, in refresh
+    raise new_exc from caught_exc
+google.auth.exceptions.RefreshError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/?recursive=true from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80): Max retries exceeded with url: /computeMetadata/v1/instance/service-accounts/default/?recursive=true (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x7f1b25ce67d0>: Failed to resolve 'metadata.google.internal' ([Errno -2] Name or service not known)"))
+2025-03-14 10:53:15,145 - apscheduler.scheduler - INFO - Scheduler has been shut down
+2025-03-14 10:53:18,601 - scheduler - INFO - Starting the scraper scheduler...
+2025-03-14 10:53:18,604 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:53:18,604 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:53:18,605 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-03-14 10:53:18,605 - apscheduler.scheduler - INFO - Added job "fetch_news" to job store "default"
+2025-03-14 10:53:18,605 - apscheduler.scheduler - INFO - Added job "fetch_tweets" to job store "default"
+2025-03-14 10:53:18,605 - apscheduler.scheduler - INFO - Added job "fetch_instagram_posts" to job store "default"
+2025-03-14 10:53:18,605 - apscheduler.scheduler - INFO - Scheduler started
+2025-03-14 10:53:18,606 - scheduler - INFO - Scheduler started successfully
+2025-03-14 10:53:18,606 - apscheduler.executors.default - INFO - Running job "fetch_news (trigger: interval[3:00:00], next run at: 2025-03-14 13:53:18 UTC)" (scheduled at 2025-03-14 10:53:18.601145+00:00)
+2025-03-14 10:53:18,607 - news_scraper - INFO - Starting news scraping process...
+2025-03-14 10:53:18,608 - news_scraper - INFO - Fetching news from globo_esporte...
+2025-03-14 10:53:18,863 - news_scraper - INFO - Successfully fetched 0 news items from globo_esporte
+2025-03-14 10:53:18,864 - news_scraper - INFO - Fetching news from espn_brasil...
+2025-03-14 10:53:21,027 - news_scraper - INFO - Successfully fetched 17 news items from espn_brasil
+2025-03-14 10:53:21,027 - news_scraper - INFO - Fetching news from lance...
+2025-03-14 10:53:21,108 - news_scraper - INFO - Successfully fetched 17 news items from lance
+2025-03-14 10:53:21,117 - firebase_handler - WARNING - Firebase service account credentials not found, using project ID only
+2025-03-14 10:53:21,117 - firebase_handler - INFO - Firebase initialized with project ID: so-golasso
+2025-03-14 10:53:21,127 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:22,057 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:23,657 - scheduler - INFO - Job twitter_scraper scheduled to run immediately
+2025-03-14 10:53:23,659 - apscheduler.executors.default - INFO - Running job "fetch_tweets (trigger: interval[2:00:00], next run at: 2025-03-14 10:53:23 UTC)" (scheduled at 2025-03-14 10:53:23.657759+00:00)
+2025-03-14 10:53:23,660 - twitter_scraper - INFO - Starting Twitter scraping process...
+2025-03-14 10:53:23,661 - twitter_scraper - INFO - Fetching tweets from Flamengo...
+2025-03-14 10:53:23,963 - twitter_scraper - INFO - Successfully fetched tweets from Flamengo
+2025-03-14 10:53:23,963 - twitter_scraper - INFO - Fetching tweets from Palmeiras...
+2025-03-14 10:53:24,098 - twitter_scraper - ERROR - Error fetching tweets for Palmeiras: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,099 - twitter_scraper - INFO - Fetching tweets from SaoPauloFC...
+2025-03-14 10:53:24,153 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:24,156 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:24,253 - twitter_scraper - ERROR - Error fetching tweets for SaoPauloFC: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,253 - twitter_scraper - INFO - Fetching tweets from Corinthians...
+2025-03-14 10:53:24,340 - twitter_scraper - ERROR - Error fetching tweets for Corinthians: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,340 - twitter_scraper - INFO - Fetching tweets from jorgenicola...
+2025-03-14 10:53:24,394 - twitter_scraper - ERROR - Error fetching tweets for jorgenicola: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,394 - twitter_scraper - INFO - Fetching tweets from maurocezar...
+2025-03-14 10:53:24,446 - twitter_scraper - ERROR - Error fetching tweets for maurocezar: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,446 - twitter_scraper - INFO - Fetching tweets from benjaminback...
+2025-03-14 10:53:24,505 - twitter_scraper - ERROR - Error fetching tweets for benjaminback: 429 Too Many Requests
+Too Many Requests
+2025-03-14 10:53:24,507 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:25,254 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:25,482 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:27,425 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:27,634 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-03-14 10:53:27,637 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:28,734 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:30,803 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:31,473 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:34,542 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:39,717 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+2025-03-14 10:53:39,718 - google.auth._default - WARNING - No project ID could be determined. Consider running `gcloud config set project` or setting the GOOGLE_CLOUD_PROJECT environment variable
