@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     TWITTER_API_SECRET: Optional[str] = None
     TWITTER_BEARER_TOKEN: Optional[str] = None
     TWITTER_ACCESS_TOKEN: Optional[str] = None
+    TWITTER_ACCESS_TOKEN_SECRET: Optional[str] = None
     
     # OpenAI (Required)
     OPENAI_API_KEY: str
