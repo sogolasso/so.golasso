@@ -11,7 +11,9 @@ from app.models.article import Article, ArticleStatus
 from app.schemas.article import ArticleCreate
 from app.services.ai_writer import AIWriter
 from app.services.email_service import EmailService
+from app.services.monitoring_service import MonitoringService
 from app.scrapers.news_scraper import NewsScraper
+from app.scrapers.social_scraper import SocialScraper
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +31,7 @@ class ScrapingScheduler:
         if not settings.OPENAI_API_KEY:
             raise ValueError("OpenAI API key is required but not set in configuration")
         self.news_scraper = NewsScraper()
+        self.social_scraper = SocialScraper()
         self.ai_writer = AIWriter(
             api_key=settings.OPENAI_API_KEY,
             max_daily_articles=settings.POSTS_PER_DAY,
@@ -36,6 +39,7 @@ class ScrapingScheduler:
         )
         self.db = SessionLocal()
         self.email_service = EmailService()
+        self.monitoring_service = MonitoringService(self.db)
         
     def _score_content(self, item: Dict[str, Any]) -> float:
         """Score content based on relevance and engagement potential"""
@@ -116,34 +120,32 @@ class ScrapingScheduler:
                 
         return unique_items
         
-    async def gather_source_data(self) -> List[Dict[str, Any]]:
+    async def gather_source_data(self) -> List[Dict]:
         """Gather and filter data from all sources"""
         try:
-            logger.info("Starting to gather source data...")
-            all_data = []
-
-            # Gather news data
-            news_data = await self.news_scraper.scrape()
-            if news_data:
-                all_data.extend(news_data)
-                logger.info(f"Gathered {len(news_data)} news items")
-
-            # Remove duplicates
-            unique_data = self._filter_duplicate_content(all_data)
-            logger.info(f"Filtered to {len(unique_data)} unique items")
+            # Gather news from traditional sources
+            news_articles = self.news_scraper.scrape_all()
             
-            # Score and sort content
-            scored_data = [(item, self._score_content(item)) for item in unique_data]
-            scored_data.sort(key=lambda x: x[1], reverse=True)
+            # Gather news from social media
+            social_articles = self.social_scraper.scrape_all()
             
-            # Take top N items based on settings
-            top_items = [item for item, score in scored_data[:settings.POSTS_PER_DAY]]
-            logger.info(f"Selected top {len(top_items)} items for processing")
-
-            return top_items
-
+            # Combine all articles
+            all_articles = news_articles + social_articles
+            
+            # Score and filter content
+            scored_articles = []
+            for article in all_articles:
+                score = self._score_content(article)
+                if score >= settings.MIN_CONTENT_SCORE:
+                    article['score'] = score
+                    scored_articles.append(article)
+            
+            # Sort by score and select top articles
+            scored_articles.sort(key=lambda x: x['score'], reverse=True)
+            return scored_articles[:settings.MAX_ARTICLES_PER_CYCLE]
+            
         except Exception as e:
-            logger.error(f"Error gathering source data: {str(e)}", exc_info=True)
+            logger.error(f"Error gathering source data: {str(e)}")
             return []
 
     async def process_source_data(self, source_data: List[Dict[str, Any]]) -> List[Article]:
@@ -206,12 +208,19 @@ class ScrapingScheduler:
                     self.db.add(article)
                     self.db.commit()
                     logger.info(f"Successfully saved and published article: {article.title}")
+                    
+                    # Send email notification
+                    article_url = f"{settings.FRONTEND_URL}/articles/{article.slug}"
+                    self.email_service.send_article_notification(article.title, article_url)
+                    
                 except Exception as e:
                     logger.error(f"Error saving article {article.title}: {str(e)}")
                     self.db.rollback()
+                    self.email_service.send_error_notification(str(e))
             return True
         except Exception as e:
             logger.error(f"Error in save_articles: {str(e)}", exc_info=True)
+            self.email_service.send_error_notification(str(e))
             return False
 
     def cleanup_old_drafts(self):
@@ -241,6 +250,9 @@ class ScrapingScheduler:
         try:
             logger.info("Starting scraping cycle...")
             
+            # Check for any issues with article generation
+            self.monitoring_service.check_article_generation()
+            
             # Gather data from sources
             source_data = await self.gather_source_data()
             if not source_data:
@@ -264,6 +276,7 @@ class ScrapingScheduler:
 
         except Exception as e:
             logger.error(f"Error in scraping cycle: {str(e)}", exc_info=True)
+            self.email_service.send_error_notification(f"Scraping cycle failed: {str(e)}")
 
 async def run_scheduler():
     """Run the scraping scheduler continuously"""

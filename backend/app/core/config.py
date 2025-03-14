@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from functools import lru_cache
+import os
 
 class Settings(BaseSettings):
     # Base settings
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     
     # JWT (Optional for now)
-    SECRET_KEY: Optional[str] = "dummy-secret-key-for-development"
+    SECRET_KEY: str = "dummy-secret-key-for-development"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Social Media API Keys (Optional for launch)
@@ -22,25 +23,10 @@ class Settings(BaseSettings):
     TWITTER_API_SECRET: Optional[str] = None
     TWITTER_BEARER_TOKEN: Optional[str] = None
     TWITTER_ACCESS_TOKEN: Optional[str] = None
-    TWITTER_ACCESS_SECRET: Optional[str] = None
     
-    FACEBOOK_APP_ID: Optional[str] = None
-    FACEBOOK_APP_SECRET: Optional[str] = None
-    FACEBOOK_ACCESS_TOKEN: Optional[str] = None
-    
-    INSTAGRAM_USERNAME: Optional[str] = None
-    INSTAGRAM_PASSWORD: Optional[str] = None
-    INSTAGRAM_ACCESS_TOKEN: Optional[str] = None
-    
-    # OpenAI (Optional for launch)
-    OPENAI_API_KEY: Optional[str] = None
-    MAX_MONTHLY_AI_COST: float = 100.0  # Maximum monthly spending on OpenAI API
-    
-    # Google Services (Optional for launch)
-    GOOGLE_ANALYTICS_ID: Optional[str] = None
-    ADSENSE_CLIENT_ID: Optional[str] = None
-    ADSENSE_IN_ARTICLE_SLOT: Optional[str] = None
-    ADSENSE_SIDEBAR_SLOT: Optional[str] = None
+    # OpenAI (Required)
+    OPENAI_API_KEY: str
+    MAX_MONTHLY_AI_COST: float = 100.0
     
     # Content Settings
     MIN_ARTICLE_LENGTH: int = 300
@@ -54,40 +40,19 @@ class Settings(BaseSettings):
     MAX_DAILY_MEME_POSTS: int = 2
     
     # AI Content Generation Settings
-    MIN_CONTENT_SCORE: float = 5.0  # Minimum score for content to be processed
-    USE_GPT4_THRESHOLD: float = 8.0  # Score threshold to use GPT-4 instead of GPT-3.5
-    CACHE_DURATION_DAYS: int = 7  # How long to cache AI-generated content
+    MIN_CONTENT_SCORE: float = 5.0
+    USE_GPT4_THRESHOLD: float = 8.0
+    CACHE_DURATION_DAYS: int = 7
     
-    # SEO Settings
-    GOOGLE_NEWS_PING_INTERVAL: int = 60  # minutes
-    SITEMAP_UPDATE_INTERVAL: int = 60  # minutes
-    
-    # Monetization Settings
-    AD_FREQUENCY: int = 3  # ads per article
-    MIN_WORDS_BETWEEN_ADS: int = 150
-    
-    # Application settings
-    APP_NAME: str = "Só Golasso API"
-    APP_VERSION: str = "1.0.0"
-    
-    # CORS settings
-    FRONTEND_URL: str = "https://sogolasso.me"
-    
-    # AWS S3 settings for media storage (Optional for now)
-    AWS_ACCESS_KEY_ID: Optional[str] = None
-    AWS_SECRET_ACCESS_KEY: Optional[str] = None
-    AWS_BUCKET_NAME: Optional[str] = None
-    AWS_REGION: str = "us-east-1"
-
-    # Redis settings for caching (Optional for launch)
-    REDIS_URL: Optional[str] = None
-
-    # Email settings (Optional for launch)
+    # Email Settings
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
-    NOTIFICATION_EMAIL: Optional[str] = None
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    NOTIFICATION_EMAILS: List[str] = [
+        "so.mesmo.golasso@gmail.com",
+        "goncalo.r.xavier@gmail.com"
+    ]
     
     class Config:
         env_file = ".env"
