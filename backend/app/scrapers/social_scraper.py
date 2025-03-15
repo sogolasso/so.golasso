@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from app.core.config import settings
 import time
 import asyncio
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,17 @@ class SocialScraper:
         except Exception as e:
             error_msg = str(e)
             if "Checkpoint required" in error_msg:
-                checkpoint_url = error_msg.split("Point your browser to ")[1].split(" -")[0]
-                logger.error(f"Instagram requires security verification. Please visit: {checkpoint_url}")
-                logger.error("After completing verification, delete the session file and restart the service")
+                logger.error("Instagram requires security verification!")
+                logger.error("Please follow these steps:")
+                logger.error("1. Login to Instagram in your browser with these credentials:")
+                logger.error(f"   Username: {settings.INSTAGRAM_USERNAME}")
+                logger.error("2. You should see a security verification prompt")
+                logger.error("3. Complete the security verification in your browser")
+                logger.error("4. After verification, run this command in your terminal:")
+                logger.error("   rm /tmp/instagram_session")
+                logger.error("5. Then restart the scheduler service in Render")
+                logger.error("\nNote: If you don't see the verification prompt when logging in,")
+                logger.error("try logging out of Instagram first, then log in again.")
             else:
                 logger.error(f"Failed to create Instagram session: {error_msg}")
             raise
@@ -125,20 +134,59 @@ class SocialScraper:
         """Track a new Instagram request"""
         self.instagram_requests.append(datetime.now())
 
+    async def _get_twitter_user(self, username: str) -> Dict:
+        """Get Twitter user info with retries"""
+        max_retries = 3
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                loop = asyncio.get_event_loop()
+                user = await loop.run_in_executor(None, self.twitter_client.get_user, username)
+                return user
+            except Exception as e:
+                retry_count += 1
+                if retry_count == max_retries:
+                    raise
+                logger.warning(f"Retry {retry_count} for Twitter user {username}: {str(e)}")
+                await asyncio.sleep(5 * retry_count)  # Exponential backoff
+
+    async def _get_twitter_tweets(self, user_id: str) -> Dict:
+        """Get Twitter tweets with retries"""
+        max_retries = 3
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                loop = asyncio.get_event_loop()
+                tweets = await loop.run_in_executor(
+                    None,
+                    lambda: self.twitter_client.get_users_tweets(
+                        user_id,
+                        max_results=5,
+                        tweet_fields=['created_at', 'public_metrics']
+                    )
+                )
+                return tweets
+            except Exception as e:
+                retry_count += 1
+                if retry_count == max_retries:
+                    raise
+                logger.warning(f"Retry {retry_count} for tweets from user {user_id}: {str(e)}")
+                await asyncio.sleep(5 * retry_count)  # Exponential backoff
+
     async def scrape_twitter(self) -> List[Dict]:
         """Scrape football news from Twitter accounts"""
         articles = []
         try:
             for username in self.twitter_accounts:
                 try:
-                    # tweepy will handle rate limiting automatically
-                    user = self.twitter_client.get_user(username=username)
+                    # Get user info with retries
+                    user = await self._get_twitter_user(username)
+                    if not user or not user.data:
+                        logger.warning(f"Could not find Twitter user: {username}")
+                        continue
                     
-                    tweets = self.twitter_client.get_users_tweets(
-                        user.data.id,
-                        max_results=5,  # Reduced from 10 to save on API calls
-                        tweet_fields=['created_at', 'public_metrics']
-                    )
+                    # Get tweets with retries
+                    tweets = await self._get_twitter_tweets(user.data.id)
                     
                     if tweets and tweets.data:
                         for tweet in tweets.data:
@@ -179,14 +227,39 @@ class SocialScraper:
                 
                 try:
                     self._track_instagram_request()
-                    profile = instaloader.Profile.from_username(self.instagram.context, username)
+                    
+                    # Get profile with retries
+                    retry_count = 0
+                    max_retries = 3
+                    profile = None
+                    while retry_count < max_retries:
+                        try:
+                            loop = asyncio.get_event_loop()
+                            profile = await loop.run_in_executor(
+                                None,
+                                lambda: instaloader.Profile.from_username(self.instagram.context, username)
+                            )
+                            break
+                        except Exception as e:
+                            retry_count += 1
+                            if retry_count == max_retries:
+                                raise
+                            logger.warning(f"Retry {retry_count} for Instagram profile {username}: {str(e)}")
+                            await asyncio.sleep(5 * retry_count)  # Exponential backoff
+                    
+                    if not profile:
+                        continue
                     
                     # Get posts with retries
                     retry_count = 0
-                    max_retries = 3
+                    posts = None
                     while retry_count < max_retries:
                         try:
-                            posts = list(profile.get_posts())[:5]  # Get latest 5 posts
+                            loop = asyncio.get_event_loop()
+                            posts = await loop.run_in_executor(
+                                None,
+                                lambda: list(profile.get_posts())[:5]  # Get latest 5 posts
+                            )
                             break
                         except Exception as e:
                             retry_count += 1
@@ -194,6 +267,9 @@ class SocialScraper:
                                 raise
                             logger.warning(f"Retry {retry_count} for {username} posts: {str(e)}")
                             await asyncio.sleep(5 * retry_count)  # Exponential backoff
+                    
+                    if not posts:
+                        continue
                     
                     for post in posts:
                         # Only include posts with significant engagement
