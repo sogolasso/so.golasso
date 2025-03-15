@@ -3,6 +3,10 @@ from typing import Optional, Literal, List
 from functools import lru_cache
 import os
 from pydantic import validator
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class Settings(BaseSettings):
     # Base settings
@@ -75,6 +79,9 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     
+    # New settings
+    MIN_ENGAGEMENT_SCORE: int = 100  # Default minimum engagement score for social media posts
+    
     @validator("DATABASE_URL")
     def validate_database_url(cls, v):
         if not v:
@@ -90,6 +97,11 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.DATABASE_URL:
+            self.DATABASE_URL = f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
 
 @lru_cache()
 def get_settings() -> Settings:
