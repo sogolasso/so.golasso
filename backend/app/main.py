@@ -23,10 +23,13 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 10000))
+    # Get port from environment variable or use default
+    port = int(os.environ.get("PORT", 10000))
+    
+    # Run the application with the specified host and port
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        reload=settings.DEBUG
+        reload=False
     ) 
