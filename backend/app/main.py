@@ -2,12 +2,15 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
+import asyncio
+import logging
+import httpx
 
 # Add the backend directory to Python path
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(backend_dir))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.core.config import settings
@@ -31,9 +34,9 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "status": "ok",
-        "message": "Football Digest API is running",
-        "version": "1.0.0"
+        "message": "Welcome to Football Digest API",
+        "version": settings.VERSION,
+        "docs_url": "/docs"
     }
 
 # Health check endpoint
@@ -41,9 +44,28 @@ async def root():
 async def health_check():
     return {
         "status": "healthy",
-        "service": "football-digest-api",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "version": settings.VERSION
     }
+
+# Keep-alive background task
+async def keep_alive():
+    """Periodically ping the health check endpoint to keep the service alive"""
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                # Get the base URL from settings or environment
+                base_url = f"http://localhost:{settings.PORT}"
+                response = await client.get(f"{base_url}/health")
+                logging.info(f"Keep-alive ping successful: {response.status_code}")
+            except Exception as e:
+                logging.error(f"Keep-alive ping failed: {str(e)}")
+            await asyncio.sleep(60)  # Ping every minute
+
+@app.on_event("startup")
+async def start_keep_alive():
+    """Start the keep-alive task when the application starts"""
+    asyncio.create_task(keep_alive())
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
