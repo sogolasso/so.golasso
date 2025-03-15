@@ -1,6 +1,9 @@
 import logging
 import tweepy
 import instaloader
+import os
+import json
+from pathlib import Path
 from typing import List, Dict
 from datetime import datetime, timedelta
 from app.core.config import settings
@@ -16,7 +19,8 @@ class SocialScraper:
             consumer_key=settings.TWITTER_API_KEY,
             consumer_secret=settings.TWITTER_API_SECRET,
             access_token=settings.TWITTER_ACCESS_TOKEN,
-            access_token_secret=settings.TWITTER_ACCESS_TOKEN_SECRET
+            access_token_secret=settings.TWITTER_ACCESS_TOKEN_SECRET,
+            wait_on_rate_limit=True  # Let tweepy handle rate limiting
         )
         
         # Instagram client
@@ -27,30 +31,19 @@ class SocialScraper:
             download_video_thumbnails=False,
             download_geotags=False,
             download_comments=False,
-            save_metadata=False
+            save_metadata=False,
+            max_connection_attempts=3
         )
         
-        # Try to login to Instagram
+        # Try to login to Instagram using session
         try:
             if settings.INSTAGRAM_USERNAME and settings.INSTAGRAM_PASSWORD:
-                self.instagram.login(settings.INSTAGRAM_USERNAME, settings.INSTAGRAM_PASSWORD)
+                self._login_instagram()
                 logger.info("Successfully logged in to Instagram")
             else:
                 logger.warning("Instagram credentials not provided, will scrape without authentication")
         except Exception as e:
             logger.error(f"Failed to login to Instagram: {str(e)}")
-        
-        # Rate limiting settings
-        self.twitter_rate_limit = {
-            'users_lookup': 300,  # 300 requests per 15 minutes
-            'users_tweets': 900,  # 900 requests per 15 minutes
-            'last_reset': datetime.now()
-        }
-        
-        self.twitter_requests_count = {
-            'users_lookup': 0,
-            'users_tweets': 0
-        }
         
         # List of accounts to follow
         self.twitter_accounts = [
@@ -78,78 +71,88 @@ class SocialScraper:
             "santosfc",  # Santos
             "cruzeiro"  # Cruzeiro
         ]
-
-    def _check_rate_limit(self, endpoint: str) -> bool:
-        """Check if we've hit the rate limit for a Twitter endpoint"""
-        now = datetime.now()
         
-        # Reset counters if 15 minutes have passed
-        if (now - self.twitter_rate_limit['last_reset']).total_seconds() > 900:
-            self.twitter_rate_limit['last_reset'] = now
-            self.twitter_requests_count[endpoint] = 0
-            
+        # Track Instagram request times
+        self.instagram_requests = []
+        
+    def _login_instagram(self):
+        """Handle Instagram login with session support"""
+        session_path = Path("/tmp/instagram_session")
+        
+        # Try to load existing session
+        if session_path.exists():
+            try:
+                self.instagram.load_session_from_file(settings.INSTAGRAM_USERNAME, session_path)
+                logger.info("Loaded existing Instagram session")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load Instagram session: {str(e)}")
+        
+        # Create new session
+        try:
+            self.instagram.login(settings.INSTAGRAM_USERNAME, settings.INSTAGRAM_PASSWORD)
+            self.instagram.save_session_to_file(session_path)
+            logger.info("Created and saved new Instagram session")
+        except Exception as e:
+            logger.error(f"Failed to create Instagram session: {str(e)}")
+            raise
+    
+    def _check_instagram_rate_limit(self) -> bool:
+        """Check if we've hit Instagram's rate limit"""
+        now = datetime.now()
+        window_start = now - timedelta(minutes=settings.INSTAGRAM_WINDOW_MINUTES)
+        
+        # Remove old requests from tracking
+        self.instagram_requests = [t for t in self.instagram_requests if t > window_start]
+        
         # Check if we've hit the limit
-        if self.twitter_requests_count[endpoint] >= self.twitter_rate_limit[endpoint]:
-            logger.warning(f"Rate limit reached for Twitter endpoint: {endpoint}")
+        if len(self.instagram_requests) >= settings.INSTAGRAM_REQUESTS_PER_WINDOW:
+            logger.warning("Instagram rate limit reached")
             return False
-            
+        
         return True
-
-    def _increment_request_count(self, endpoint: str):
-        """Increment the request count for a Twitter endpoint"""
-        self.twitter_requests_count[endpoint] += 1
+    
+    def _track_instagram_request(self):
+        """Track a new Instagram request"""
+        self.instagram_requests.append(datetime.now())
 
     def scrape_twitter(self) -> List[Dict]:
         """Scrape football news from Twitter accounts"""
         articles = []
         try:
             for username in self.twitter_accounts:
-                # Check rate limit before making request
-                if not self._check_rate_limit('users_lookup'):
-                    logger.warning("Skipping Twitter scraping due to rate limit")
-                    break
-                    
                 try:
+                    # tweepy will handle rate limiting automatically
                     user = self.twitter_client.get_user(username=username)
-                    self._increment_request_count('users_lookup')
-                except Exception as e:
-                    logger.error(f"Error getting Twitter user {username}: {str(e)}")
-                    continue
-                
-                # Check rate limit before getting tweets
-                if not self._check_rate_limit('users_tweets'):
-                    logger.warning("Skipping tweet fetching due to rate limit")
-                    break
                     
-                try:
                     tweets = self.twitter_client.get_users_tweets(
                         user.data.id,
                         max_results=5,  # Reduced from 10 to save on API calls
                         tweet_fields=['created_at', 'public_metrics']
                     )
-                    self._increment_request_count('users_tweets')
-                except Exception as e:
-                    logger.error(f"Error getting tweets for {username}: {str(e)}")
-                    continue
-                
-                if not tweets.data:
-                    continue
                     
-                for tweet in tweets.data:
-                    # Only include tweets with media or significant engagement
-                    if tweet.public_metrics['retweet_count'] > 10 or tweet.public_metrics['like_count'] > 50:
-                        articles.append({
-                            'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
-                            'content': tweet.text,
-                            'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
-                            'source_type': 'twitter',
-                            'published_at': tweet.created_at,
-                            'author': username,
-                            'engagement_count': tweet.public_metrics['retweet_count'] + tweet.public_metrics['like_count']
-                        })
-                
-                # Add a small delay between accounts to avoid hitting rate limits
-                time.sleep(1)
+                    if not tweets.data:
+                        continue
+                    
+                    for tweet in tweets.data:
+                        # Only include tweets with media or significant engagement
+                        if tweet.public_metrics['retweet_count'] > 10 or tweet.public_metrics['like_count'] > 50:
+                            articles.append({
+                                'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
+                                'content': tweet.text,
+                                'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
+                                'source_type': 'twitter',
+                                'published_at': tweet.created_at,
+                                'author': username,
+                                'engagement_count': tweet.public_metrics['retweet_count'] + tweet.public_metrics['like_count']
+                            })
+                    
+                    # Small delay between accounts even with rate limiting
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    logger.error(f"Error processing Twitter user {username}: {str(e)}")
+                    continue
                         
         except Exception as e:
             logger.error(f"Error scraping Twitter: {str(e)}")
@@ -161,9 +164,29 @@ class SocialScraper:
         articles = []
         try:
             for username in self.instagram_accounts:
+                # Check rate limit
+                if not self._check_instagram_rate_limit():
+                    logger.warning(f"Skipping Instagram user {username} due to rate limit")
+                    time.sleep(60)  # Wait a minute before next attempt
+                    continue
+                
                 try:
+                    self._track_instagram_request()
                     profile = instaloader.Profile.from_username(self.instagram.context, username)
-                    posts = list(profile.get_posts())[:5]  # Get latest 5 posts
+                    
+                    # Get posts with retries
+                    retry_count = 0
+                    max_retries = 3
+                    while retry_count < max_retries:
+                        try:
+                            posts = list(profile.get_posts())[:5]  # Get latest 5 posts
+                            break
+                        except Exception as e:
+                            retry_count += 1
+                            if retry_count == max_retries:
+                                raise
+                            logger.warning(f"Retry {retry_count} for {username} posts: {str(e)}")
+                            time.sleep(5 * retry_count)  # Exponential backoff
                     
                     for post in posts:
                         # Only include posts with significant engagement
@@ -181,9 +204,9 @@ class SocialScraper:
                 except Exception as e:
                     logger.error(f"Error scraping Instagram user {username}: {str(e)}")
                     continue
-                    
-                # Add a small delay between accounts to avoid rate limiting
-                time.sleep(2)
+                
+                # Longer delay between Instagram requests
+                time.sleep(5)
                         
         except Exception as e:
             logger.error(f"Error scraping Instagram: {str(e)}")
@@ -199,7 +222,7 @@ class SocialScraper:
         articles.extend(twitter_articles)
         
         # Add delay between platforms
-        time.sleep(2)
+        time.sleep(5)
         
         # Scrape Instagram
         instagram_articles = self.scrape_instagram()

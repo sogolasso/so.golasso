@@ -37,12 +37,19 @@ class Settings(BaseSettings):
     MIN_ARTICLE_LENGTH: int = 300
     MAX_ARTICLE_LENGTH: int = 5000
     CONTENT_RETENTION_DAYS: int = 365
+    MAX_ARTICLES_PER_CYCLE: int = 20
     
     # Distribution Settings
     POSTS_PER_DAY: int = 10
     MIN_TIME_BETWEEN_POSTS: int = 30  # minutes
     MAX_DAILY_TRENDING_POSTS: int = 5
     MAX_DAILY_MEME_POSTS: int = 2
+    
+    # Rate Limiting Settings
+    TWITTER_REQUESTS_PER_WINDOW: int = 100
+    TWITTER_WINDOW_MINUTES: int = 15
+    INSTAGRAM_REQUESTS_PER_WINDOW: int = 50
+    INSTAGRAM_WINDOW_MINUTES: int = 30
     
     # AI Content Generation Settings
     MIN_CONTENT_SCORE: float = 5.0
