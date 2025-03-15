@@ -5,6 +5,9 @@ from typing import List, Dict, Optional
 import logging
 import re
 import asyncio
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class NewsScraper:
     def __init__(self):
@@ -45,6 +48,18 @@ class NewsScraper:
                 'estuda', 'avalia', 'monitora', 'interesse', 'sondagem'
             ]
         }
+        self.session = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create aiohttp session"""
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession()
+        return self.session
+        
+    async def _close_session(self):
+        """Close aiohttp session"""
+        if self.session and not self.session.closed:
+            await self.session.close()
 
     def _clean_text(self, text: str) -> str:
         """Clean scraped text by removing extra whitespace and newlines."""
@@ -79,20 +94,20 @@ class NewsScraper:
             return max(scores.items(), key=lambda x: x[1])[0]
         return 'RUMOR'  # Default category if no strong matches
 
-    async def _fetch_page(self, session: aiohttp.ClientSession, url: str) -> str:
+    async def _fetch_page(self, url: str) -> str:
         """Fetch a page using aiohttp."""
         try:
-            async with session.get(url, headers=self.headers, timeout=30) as response:
+            async with self.session.get(url, headers=self.headers, timeout=30) as response:
                 return await response.text()
         except Exception as e:
-            logging.error(f"Error fetching {url}: {str(e)}")
+            logger.error(f"Error fetching {url}: {str(e)}")
             return ""
 
-    async def scrape_ge(self, session: aiohttp.ClientSession) -> List[Dict]:
+    async def scrape_ge(self) -> List[Dict]:
         """Scrape news from Globo Esporte."""
         articles = []
         try:
-            html = await self._fetch_page(session, self.sources['ge'])
+            html = await self._fetch_page(self.sources['ge'])
             if not html:
                 return articles
                 
@@ -104,7 +119,7 @@ class NewsScraper:
                     link = article.find('a', class_='feed-post-link')['href']
                     
                     # Get full article content
-                    article_html = await self._fetch_page(session, link)
+                    article_html = await self._fetch_page(link)
                     if not article_html:
                         continue
                         
@@ -121,19 +136,19 @@ class NewsScraper:
                     
                     await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
-                    logging.error(f"Error scraping GE article: {str(e)}")
+                    logger.error(f"Error scraping GE article: {str(e)}")
                     continue
                     
         except Exception as e:
-            logging.error(f"Error scraping GE: {str(e)}")
+            logger.error(f"Error scraping GE: {str(e)}")
         
         return articles
 
-    async def scrape_espn(self, session: aiohttp.ClientSession) -> List[Dict]:
+    async def scrape_espn(self) -> List[Dict]:
         """Scrape news from ESPN Brasil."""
         articles = []
         try:
-            html = await self._fetch_page(session, self.sources['espn'])
+            html = await self._fetch_page(self.sources['espn'])
             if not html:
                 return articles
                 
@@ -151,7 +166,7 @@ class NewsScraper:
                         link = 'https://www.espn.com.br' + link
                     
                     # Get full article content
-                    article_html = await self._fetch_page(session, link)
+                    article_html = await self._fetch_page(link)
                     if not article_html:
                         continue
                         
@@ -168,19 +183,19 @@ class NewsScraper:
                     
                     await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
-                    logging.error(f"Error scraping ESPN article: {str(e)}")
+                    logger.error(f"Error scraping ESPN article: {str(e)}")
                     continue
                     
         except Exception as e:
-            logging.error(f"Error scraping ESPN: {str(e)}")
+            logger.error(f"Error scraping ESPN: {str(e)}")
         
         return articles
 
-    async def scrape_lance(self, session: aiohttp.ClientSession) -> List[Dict]:
+    async def scrape_lance(self) -> List[Dict]:
         """Scrape news from Lance."""
         articles = []
         try:
-            html = await self._fetch_page(session, self.sources['lance'])
+            html = await self._fetch_page(self.sources['lance'])
             if not html:
                 return articles
                 
@@ -192,7 +207,7 @@ class NewsScraper:
                     link = article.find('a')['href']
                     
                     # Get full article content
-                    article_html = await self._fetch_page(session, link)
+                    article_html = await self._fetch_page(link)
                     if not article_html:
                         continue
                         
@@ -209,11 +224,11 @@ class NewsScraper:
                     
                     await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
-                    logging.error(f"Error scraping Lance article: {str(e)}")
+                    logger.error(f"Error scraping Lance article: {str(e)}")
                     continue
                     
         except Exception as e:
-            logging.error(f"Error scraping Lance: {str(e)}")
+            logger.error(f"Error scraping Lance: {str(e)}")
         
         return articles
 
@@ -236,19 +251,30 @@ class NewsScraper:
         """Scrape news from all sources."""
         all_articles = []
         
-        async with aiohttp.ClientSession() as session:
-            # Scrape from all sources
-            ge_articles = await self.scrape_ge(session)
+        # Scrape from all sources
+        try:
+            ge_articles = await self.scrape_ge()
             all_articles.extend(ge_articles)
-            logging.info(f"Scraped {len(ge_articles)} articles from Globo Esporte")
+            logger.info(f"Scraped {len(ge_articles)} articles from Globo Esporte")
+        except Exception as e:
+            logger.error(f"Globo Esporte scraping failed: {str(e)}")
             
-            espn_articles = await self.scrape_espn(session)
+        try:
+            espn_articles = await self.scrape_espn()
             all_articles.extend(espn_articles)
-            logging.info(f"Scraped {len(espn_articles)} articles from ESPN Brasil")
+            logger.info(f"Scraped {len(espn_articles)} articles from ESPN Brasil")
+        except Exception as e:
+            logger.error(f"ESPN Brasil scraping failed: {str(e)}")
             
-            lance_articles = await self.scrape_lance(session)
+        try:
+            lance_articles = await self.scrape_lance()
             all_articles.extend(lance_articles)
-            logging.info(f"Scraped {len(lance_articles)} articles from Lance!")
+            logger.info(f"Scraped {len(lance_articles)} articles from Lance!")
+        except Exception as e:
+            logger.error(f"Lance! scraping failed: {str(e)}")
+        
+        # Close session
+        await self._close_session()
         
         return all_articles
 
@@ -257,7 +283,7 @@ class NewsScraper:
         try:
             return await self.scrape_all()
         except Exception as e:
-            logging.error(f"Error scraping news: {str(e)}")
+            logger.error(f"Error scraping news: {str(e)}")
             return []
 
 async def get_latest_news() -> List[Dict]:
