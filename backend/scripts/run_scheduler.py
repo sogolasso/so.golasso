@@ -3,6 +3,9 @@ import os
 import logging
 import asyncio
 from pathlib import Path
+from fastapi import FastAPI
+import uvicorn
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(
@@ -30,31 +33,63 @@ def setup_environment():
     # Change to backend directory
     os.chdir(backend_dir)
 
-async def main():
-    """Main entry point for the scheduler"""
+# Create FastAPI app with lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start scheduler in background task
+    scheduler_task = asyncio.create_task(run_scheduler_loop())
+    yield
+    # Cleanup on shutdown
+    scheduler_task.cancel()
     try:
-        setup_environment()
-        
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
+async def run_scheduler_loop():
+    """Run the scheduler in a loop"""
+    try:
         # Import after environment setup
         from app.core.scraping_scheduler import run_scheduler
         from app.core.config import settings
         
-        # Log port configuration
-        logger.info(f"Port configured: {settings.PORT}")
-        
-        # Run the scheduler
-        await run_scheduler()
-        
+        # Run the scheduler continuously
+        while True:
+            try:
+                await run_scheduler()
+                logger.info(f"Waiting {settings.SCRAPING_INTERVAL_MINUTES} minutes until next cycle")
+                await asyncio.sleep(settings.SCRAPING_INTERVAL_MINUTES * 60)
+            except Exception as e:
+                logger.error(f"Error in scheduler cycle: {str(e)}", exc_info=True)
+                await asyncio.sleep(300)  # Wait 5 minutes before retrying
+                
     except Exception as e:
         logger.error(f"Fatal error in scheduler: {str(e)}", exc_info=True)
         sys.exit(1)
 
-if __name__ == "__main__":
+def main():
+    """Main entry point"""
     try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Scheduler stopped by user")
-        sys.exit(0)
+        setup_environment()
+        
+        # Import settings after environment setup
+        from app.core.config import settings
+        
+        # Start uvicorn server
+        port = settings.PORT
+        logger.info(f"Starting server on port {port}")
+        uvicorn.run(app, host="0.0.0.0", port=port)
+        
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}", exc_info=True)
-        sys.exit(1) 
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() 

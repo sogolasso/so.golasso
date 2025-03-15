@@ -238,33 +238,27 @@ class SocialScraper:
             logger.warning("Twitter rate limit would be exceeded, skipping this cycle")
             return None
         
-        max_retries = 3
-        retry_count = 0
-        while retry_count < max_retries:
-            try:
-                loop = asyncio.get_event_loop()
-                tweets = await loop.run_in_executor(
-                    None,
-                    lambda: self.twitter_client.get_users_tweets(
-                        user_id,
-                        max_results=5,  # Reduced from 10 to save on API calls
-                        tweet_fields=['created_at', 'public_metrics'],
-                        exclude=['retweets', 'replies']  # Only get original tweets
-                    )
-                )
+        try:
+            # Get tweets without waiting on rate limit
+            tweets = self.twitter_client.get_users_tweets(
+                user_id,
+                max_results=5,  # Reduced from 10 to save on API calls
+                tweet_fields=['created_at', 'public_metrics'],
+                exclude=['retweets', 'replies']  # Only get original tweets
+            )
+            
+            if tweets and 'data' in tweets:
+                return tweets
                 
-                if tweets and 'data' in tweets:
-                    return tweets
-                    
-                return None
+            return None
                 
-            except Exception as e:
-                retry_count += 1
-                if retry_count == max_retries:
-                    logger.error(f"Failed to get tweets for user {user_id} after {max_retries} retries: {str(e)}")
-                    return None
-                logger.warning(f"Retry {retry_count} for tweets from user {user_id}: {str(e)}")
-                await asyncio.sleep(5 * retry_count)  # Exponential backoff
+        except Exception as e:
+            if "Rate limit exceeded" in str(e):
+                logger.warning("Twitter rate limit exceeded, will retry in next cycle")
+                self._update_twitter_rate_limit()
+            else:
+                logger.error(f"Error getting tweets for user {user_id}: {str(e)}")
+            return None
 
     async def scrape_twitter(self) -> List[Dict]:
         """Scrape football news from Twitter accounts"""
@@ -282,17 +276,19 @@ class SocialScraper:
             for username in self.twitter_accounts:
                 try:
                     # Get user info with retries and caching
-                    user_response = await self._get_twitter_user(username)
-                    if not user_response or 'data' not in user_response:
+                    user = await self._get_twitter_user(username)
+                    if not user:
                         logger.warning(f"Could not find Twitter user: {username}")
                         continue
                     
-                    user_id = user_response['data']['id']
+                    user_id = user['id']
                     
-                    # Get tweets with retries
+                    # Get tweets
                     tweets_response = await self._get_twitter_tweets(user_id)
+                    if not tweets_response:
+                        continue
                     
-                    if tweets_response and 'data' in tweets_response:
+                    if 'data' in tweets_response:
                         for tweet in tweets_response['data']:
                             # Only include tweets with significant engagement
                             metrics = tweet['public_metrics']
@@ -328,6 +324,10 @@ class SocialScraper:
 
     async def scrape_instagram(self) -> List[Dict]:
         """Scrape football news from Instagram accounts"""
+        if not settings.INSTAGRAM_USERNAME or not settings.INSTAGRAM_PASSWORD:
+            logger.warning("Instagram credentials not configured, skipping Instagram scraping")
+            return []
+            
         articles = []
         
         # Verify/refresh session before starting
@@ -336,7 +336,15 @@ class SocialScraper:
             if not session_path.exists():
                 self._login_instagram()
         except Exception as e:
-            logger.error(f"Failed to verify/refresh Instagram session: {str(e)}")
+            if "Checkpoint required" in str(e):
+                logger.error("Instagram requires security verification!")
+                logger.error("Please follow these steps:")
+                logger.error("1. Login to Instagram in your browser")
+                logger.error("2. Complete the security verification")
+                logger.error("3. Delete the session file: rm /tmp/instagram_session")
+                logger.error("4. Restart the scheduler service")
+            else:
+                logger.error(f"Failed to verify/refresh Instagram session: {str(e)}")
             return articles
         
         try:
@@ -344,78 +352,18 @@ class SocialScraper:
                 # Check rate limit
                 if not self._check_instagram_rate_limit():
                     logger.warning(f"Skipping Instagram user {username} due to rate limit")
-                    await asyncio.sleep(60)  # Wait a minute before next attempt
                     continue
                 
                 try:
                     self._track_instagram_request()
                     
-                    # Get profile with retries
-                    retry_count = 0
-                    max_retries = 3
-                    profile = None
-                    while retry_count < max_retries:
-                        try:
-                            loop = asyncio.get_event_loop()
-                            profile = await loop.run_in_executor(
-                                None,
-                                lambda: instaloader.Profile.from_username(self.instagram.context, username)
-                            )
-                            break
-                        except Exception as e:
-                            retry_count += 1
-                            error_msg = str(e)
-                            
-                            # If we get a 401, try to refresh the session
-                            if "HTTP error code 401" in error_msg and retry_count < max_retries:
-                                logger.warning("Got 401 error, attempting to refresh session...")
-                                try:
-                                    self._login_instagram()
-                                    continue
-                                except Exception as login_error:
-                                    logger.error(f"Failed to refresh session: {str(login_error)}")
-                            
-                            if retry_count == max_retries:
-                                raise
-                            
-                            logger.warning(f"Retry {retry_count} for Instagram profile {username}: {error_msg}")
-                            await asyncio.sleep(5 * retry_count)  # Exponential backoff
-                    
+                    # Get profile
+                    profile = instaloader.Profile.from_username(self.instagram.context, username)
                     if not profile:
                         continue
                     
-                    # Get posts with retries
-                    retry_count = 0
-                    posts = None
-                    while retry_count < max_retries:
-                        try:
-                            loop = asyncio.get_event_loop()
-                            posts = await loop.run_in_executor(
-                                None,
-                                lambda: list(profile.get_posts())[:5]  # Get latest 5 posts
-                            )
-                            break
-                        except Exception as e:
-                            retry_count += 1
-                            error_msg = str(e)
-                            
-                            # If we get a 401, try to refresh the session
-                            if "HTTP error code 401" in error_msg and retry_count < max_retries:
-                                logger.warning("Got 401 error, attempting to refresh session...")
-                                try:
-                                    self._login_instagram()
-                                    continue
-                                except Exception as login_error:
-                                    logger.error(f"Failed to refresh session: {str(login_error)}")
-                            
-                            if retry_count == max_retries:
-                                raise
-                            
-                            logger.warning(f"Retry {retry_count} for {username} posts: {error_msg}")
-                            await asyncio.sleep(5 * retry_count)  # Exponential backoff
-                    
-                    if not posts:
-                        continue
+                    # Get latest posts
+                    posts = list(profile.get_posts())[:5]  # Get latest 5 posts
                     
                     for post in posts:
                         # Only include posts with significant engagement
@@ -430,15 +378,23 @@ class SocialScraper:
                                 'author': username,
                                 'engagement_count': post.likes + post.comments
                             })
+                    
+                    # Delay between accounts
+                    await asyncio.sleep(5)
+                    
                 except Exception as e:
-                    logger.error(f"Error scraping Instagram user {username}: {str(e)}")
+                    if "Checkpoint required" in str(e):
+                        logger.error(f"Instagram checkpoint required for {username}")
+                        break  # Stop processing other accounts
+                    else:
+                        logger.error(f"Error scraping Instagram user {username}: {str(e)}")
                     continue
-                
-                # Longer delay between Instagram requests
-                await asyncio.sleep(5)
                         
         except Exception as e:
-            logger.error(f"Error scraping Instagram: {str(e)}")
+            if "Checkpoint required" in str(e):
+                logger.error("Instagram checkpoint required - please verify account")
+            else:
+                logger.error(f"Error scraping Instagram: {str(e)}")
             
         return articles
 
