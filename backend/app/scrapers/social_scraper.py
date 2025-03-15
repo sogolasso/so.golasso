@@ -34,7 +34,7 @@ class SocialScraper:
         self.twitter_user_requests = []
         self.twitter_tweet_requests = []
         
-        # Instagram client
+        # Instagram client with more robust settings
         self.instagram = instaloader.Instaloader(
             quiet=True,
             download_pictures=False,
@@ -43,7 +43,11 @@ class SocialScraper:
             download_geotags=False,
             download_comments=False,
             save_metadata=False,
-            max_connection_attempts=3
+            max_connection_attempts=3,
+            request_timeout=30,
+            sleep=True,  # Enable sleeping between requests
+            sleep_time_between_requests=3,  # Sleep 3 seconds between requests
+            fatal_status_codes=[400, 429]  # Don't consider 401 as fatal
         )
         
         # Try to login to Instagram using session
@@ -95,35 +99,62 @@ class SocialScraper:
             try:
                 self.instagram.load_session_from_file(settings.INSTAGRAM_USERNAME, session_path)
                 logger.info("Loaded existing Instagram session")
-                return
+                
+                # Verify session is valid
+                try:
+                    test_profile = instaloader.Profile.from_username(self.instagram.context, "instagram")
+                    logger.info("Instagram session verified successfully")
+                    return
+                except Exception as e:
+                    logger.warning("Existing session is invalid, will create new one")
+                    if session_path.exists():
+                        session_path.unlink()
             except Exception as e:
                 logger.warning(f"Failed to load Instagram session: {str(e)}")
                 if session_path.exists():
-                    session_path.unlink()  # Delete invalid session file
+                    session_path.unlink()
         
-        # Create new session
-        try:
-            self.instagram.login(settings.INSTAGRAM_USERNAME, settings.INSTAGRAM_PASSWORD)
-            self.instagram.save_session_to_file(session_path)
-            logger.info("Created and saved new Instagram session")
-        except Exception as e:
-            error_msg = str(e)
-            if "Checkpoint required" in error_msg:
-                logger.error("Instagram requires security verification!")
-                logger.error("Please follow these steps:")
-                logger.error("1. Login to Instagram in your browser with these credentials:")
-                logger.error(f"   Username: {settings.INSTAGRAM_USERNAME}")
-                logger.error("2. You should see a security verification prompt")
-                logger.error("3. Complete the security verification in your browser")
-                logger.error("4. After verification, run this command in your terminal:")
-                logger.error("   rm /tmp/instagram_session")
-                logger.error("5. Then restart the scheduler service in Render")
-                logger.error("\nNote: If you don't see the verification prompt when logging in,")
-                logger.error("try logging out of Instagram first, then log in again.")
-            else:
-                logger.error(f"Failed to create Instagram session: {error_msg}")
-            raise
-    
+        # Create new session with retry logic
+        max_retries = 3
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                # Clear any existing cookies/session data
+                self.instagram.context._session.cookies.clear()
+                
+                # Attempt login
+                self.instagram.login(settings.INSTAGRAM_USERNAME, settings.INSTAGRAM_PASSWORD)
+                
+                # Save session if login successful
+                self.instagram.save_session_to_file(session_path)
+                logger.info("Created and saved new Instagram session")
+                return
+                
+            except Exception as e:
+                retry_count += 1
+                error_msg = str(e)
+                
+                if "Checkpoint required" in error_msg:
+                    logger.error("Instagram requires security verification!")
+                    logger.error("Please follow these steps:")
+                    logger.error("1. Login to Instagram in your browser with these credentials:")
+                    logger.error(f"   Username: {settings.INSTAGRAM_USERNAME}")
+                    logger.error("2. You should see a security verification prompt")
+                    logger.error("3. Complete the security verification in your browser")
+                    logger.error("4. After verification, run this command in your terminal:")
+                    logger.error("   rm /tmp/instagram_session")
+                    logger.error("5. Then restart the scheduler service in Render")
+                    logger.error("\nNote: If you don't see the verification prompt when logging in,")
+                    logger.error("try logging out of Instagram first, then log in again.")
+                    raise
+                
+                if retry_count == max_retries:
+                    logger.error(f"Failed to create Instagram session after {max_retries} attempts: {error_msg}")
+                    raise
+                
+                logger.warning(f"Login attempt {retry_count} failed: {error_msg}")
+                time.sleep(5 * retry_count)  # Exponential backoff
+
     def _check_instagram_rate_limit(self) -> bool:
         """Check if we've hit Instagram's rate limit"""
         now = datetime.now()
@@ -311,6 +342,16 @@ class SocialScraper:
     async def scrape_instagram(self) -> List[Dict]:
         """Scrape football news from Instagram accounts"""
         articles = []
+        
+        # Verify/refresh session before starting
+        try:
+            session_path = Path("/tmp/instagram_session")
+            if not session_path.exists():
+                self._login_instagram()
+        except Exception as e:
+            logger.error(f"Failed to verify/refresh Instagram session: {str(e)}")
+            return articles
+        
         try:
             for username in self.instagram_accounts:
                 # Check rate limit
@@ -336,9 +377,21 @@ class SocialScraper:
                             break
                         except Exception as e:
                             retry_count += 1
+                            error_msg = str(e)
+                            
+                            # If we get a 401, try to refresh the session
+                            if "HTTP error code 401" in error_msg and retry_count < max_retries:
+                                logger.warning("Got 401 error, attempting to refresh session...")
+                                try:
+                                    self._login_instagram()
+                                    continue
+                                except Exception as login_error:
+                                    logger.error(f"Failed to refresh session: {str(login_error)}")
+                            
                             if retry_count == max_retries:
                                 raise
-                            logger.warning(f"Retry {retry_count} for Instagram profile {username}: {str(e)}")
+                            
+                            logger.warning(f"Retry {retry_count} for Instagram profile {username}: {error_msg}")
                             await asyncio.sleep(5 * retry_count)  # Exponential backoff
                     
                     if not profile:
@@ -357,9 +410,21 @@ class SocialScraper:
                             break
                         except Exception as e:
                             retry_count += 1
+                            error_msg = str(e)
+                            
+                            # If we get a 401, try to refresh the session
+                            if "HTTP error code 401" in error_msg and retry_count < max_retries:
+                                logger.warning("Got 401 error, attempting to refresh session...")
+                                try:
+                                    self._login_instagram()
+                                    continue
+                                except Exception as login_error:
+                                    logger.error(f"Failed to refresh session: {str(login_error)}")
+                            
                             if retry_count == max_retries:
                                 raise
-                            logger.warning(f"Retry {retry_count} for {username} posts: {str(e)}")
+                            
+                            logger.warning(f"Retry {retry_count} for {username} posts: {error_msg}")
                             await asyncio.sleep(5 * retry_count)  # Exponential backoff
                     
                     if not posts:
