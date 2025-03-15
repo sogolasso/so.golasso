@@ -27,6 +27,9 @@ class AIWriter:
     ) -> Dict[str, Any]:
         """Generate an article using OpenAI's GPT model with usage tracking and caching"""
         try:
+            # Log the attempt
+            logger.info(f"Attempting to generate article: {title}")
+            
             # Check if we can generate more articles today
             if not self.usage_tracker.can_generate_article():
                 logger.warning("Daily article limit reached")
@@ -48,14 +51,15 @@ class AIWriter:
             prompt = self._create_prompt(title, source_text, source_type)
             
             # Generate content using OpenAI
+            logger.info("Sending request to OpenAI...")
             response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",  # Using GPT-3.5 for cost efficiency
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a professional sports journalist specializing in football (soccer). Write engaging, accurate, and well-structured articles."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=1000  # Limiting tokens for cost control
+                max_tokens=1000
             )
             
             # Calculate cost (approximate)
@@ -67,11 +71,14 @@ class AIWriter:
             
             # Parse the response
             content = response.choices[0].message.content
+            logger.info("Successfully generated article content")
             
             # Generate a summary
+            logger.info("Generating summary...")
             summary = await self._generate_summary(content)
             
             # Determine category and author details
+            logger.info("Determining category and author details...")
             category = await self._determine_category(content)
             author_details = await self._generate_author_details(content)
             
@@ -90,12 +97,13 @@ class AIWriter:
             
             # Cache the article
             self.usage_tracker.cache_article(content_hash, article_data)
+            logger.info(f"Successfully generated article: {title}")
             
             return article_data
             
         except Exception as e:
-            logger.error(f"Error generating article: {e}")
-            raise
+            logger.error(f"Error generating article '{title}': {str(e)}", exc_info=True)
+            return None
             
     def _create_prompt(self, title: str, source_text: str, source_type: str) -> str:
         """Create a prompt for the AI based on source type"""
@@ -141,7 +149,7 @@ Please structure the article with:
         """Determine the article category"""
         try:
             response = await self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model="gpt-3.5-turbo",  # Changed from gpt-4-turbo-preview
                 messages=[
                     {"role": "system", "content": "Categorize this football article into one of these categories: Transfer News, Match Report, Player News, Team News, Analysis, Opinion"},
                     {"role": "user", "content": content}
@@ -158,7 +166,7 @@ Please structure the article with:
         """Generate author details based on content"""
         try:
             response = await self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model="gpt-3.5-turbo",  # Changed from gpt-4-turbo-preview
                 messages=[
                     {"role": "system", "content": "Based on this article's content and style, suggest an author name and writing style (e.g., Analytical, Narrative, Technical, etc.)"},
                     {"role": "user", "content": content}
@@ -177,15 +185,25 @@ Please structure the article with:
     
     def _extract_keywords(self, content: str) -> str:
         """Extract relevant keywords from the content"""
-        # Simple keyword extraction (can be enhanced)
-        common_keywords = ["futebol", "gol", "campeonato", "brasileiro", "copa"]
+        # Enhanced keyword extraction
+        common_keywords = [
+            "futebol", "gol", "campeonato", "brasileiro", "copa",
+            "time", "jogador", "técnico", "partida", "vitória",
+            "derrota", "empate", "clássico", "torneio", "liga"
+        ]
         keywords = []
         
-        for word in content.lower().split():
-            if len(word) > 3 and word in common_keywords:
+        content_words = content.lower().split()
+        for word in content_words:
+            if len(word) > 3 and (word in common_keywords or any(kw in word for kw in common_keywords)):
                 keywords.append(word)
                 
-        return ",".join(set(keywords))
+        return ",".join(set(keywords[:10]))  # Limit to top 10 keywords
+        
+    def _generate_slug(self, title: str) -> str:
+        """Generate a URL-friendly slug from the title"""
+        from slugify import slugify
+        return slugify(title)  # Using python-slugify for better slug generation
         
     def _generate_slug(self, title: str) -> str:
         """Generate a URL-friendly slug from the title"""
