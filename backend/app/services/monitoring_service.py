@@ -18,7 +18,7 @@ class MonitoringService:
         self.alert_threshold = timedelta(hours=8)    # Send alert if no articles in 8 hours
         self.critical_threshold = timedelta(hours=12) # Send critical alert if no articles in 12 hours
 
-    def check_article_generation(self, skip_notifications: bool = False):
+    async def check_article_generation(self, skip_notifications: bool = False):
         """Check if articles are being generated and notify if there are issues"""
         try:
             # Get total article count
@@ -39,37 +39,37 @@ class MonitoringService:
                 message = "No articles have been generated yet. This might indicate an issue with the scraping or generation process."
                 logger.warning(message)
                 if not skip_notifications:
-                    self.notify_warning(message)
+                    await self.notify_warning(message)
                 
             elif recent_articles == 0:
                 message = "No new articles in the last 24 hours. This might indicate an issue with the scraping or generation process."
                 logger.warning(message)
                 if not skip_notifications:
-                    self.notify_warning(message)
+                    await self.notify_warning(message)
                     
             elif published_articles == 0:
                 message = "No articles have been published yet. This might indicate an issue with the publishing process."
                 logger.warning(message)
                 if not skip_notifications:
-                    self.notify_warning(message)
+                    await self.notify_warning(message)
                 
         except Exception as e:
             error_message = f"Error in monitoring service: {str(e)}"
             logger.error(error_message)
             if not skip_notifications:
-                self.notify_error(error_message)
+                await self.notify_error(error_message)
             raise
     
-    def notify_warning(self, message: str):
+    async def notify_warning(self, message: str):
         """Send a warning notification"""
         try:
-            self.email_service.send_error_notification(f"WARNING: {message}")
+            await self.email_service.send_error_notification(f"WARNING: {message}")
         except Exception as e:
             logger.error(f"Failed to send warning notification: {str(e)}")
     
-    def notify_error(self, message: str):
+    async def notify_error(self, message: str):
         """Send an error notification"""
         try:
-            self.email_service.send_error_notification(f"ERROR: {message}")
+            await self.email_service.send_error_notification(f"ERROR: {message}")
         except Exception as e:
             logger.error(f"Failed to send error notification: {str(e)}") 

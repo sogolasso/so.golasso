@@ -8,6 +8,7 @@ from typing import List, Dict
 from datetime import datetime, timedelta
 from app.core.config import settings
 import time
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class SocialScraper:
         """Track a new Instagram request"""
         self.instagram_requests.append(datetime.now())
 
-    def scrape_twitter(self) -> List[Dict]:
+    async def scrape_twitter(self) -> List[Dict]:
         """Scrape football news from Twitter accounts"""
         articles = []
         try:
@@ -139,24 +140,22 @@ class SocialScraper:
                         tweet_fields=['created_at', 'public_metrics']
                     )
                     
-                    if not tweets.data:
-                        continue
-                    
-                    for tweet in tweets.data:
-                        # Only include tweets with media or significant engagement
-                        if tweet.public_metrics['retweet_count'] > 10 or tweet.public_metrics['like_count'] > 50:
-                            articles.append({
-                                'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
-                                'content': tweet.text,
-                                'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
-                                'source_type': 'twitter',
-                                'published_at': tweet.created_at,
-                                'author': username,
-                                'engagement_count': tweet.public_metrics['retweet_count'] + tweet.public_metrics['like_count']
-                            })
+                    if tweets and tweets.data:
+                        for tweet in tweets.data:
+                            # Only include tweets with media or significant engagement
+                            if tweet.public_metrics['retweet_count'] > 10 or tweet.public_metrics['like_count'] > 50:
+                                articles.append({
+                                    'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
+                                    'content': tweet.text,
+                                    'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
+                                    'source_type': 'twitter',
+                                    'published_at': tweet.created_at,
+                                    'author': username,
+                                    'engagement_count': tweet.public_metrics['retweet_count'] + tweet.public_metrics['like_count']
+                                })
                     
                     # Small delay between accounts even with rate limiting
-                    time.sleep(1)
+                    await asyncio.sleep(1)
                     
                 except Exception as e:
                     logger.error(f"Error processing Twitter user {username}: {str(e)}")
@@ -167,7 +166,7 @@ class SocialScraper:
             
         return articles
 
-    def scrape_instagram(self) -> List[Dict]:
+    async def scrape_instagram(self) -> List[Dict]:
         """Scrape football news from Instagram accounts"""
         articles = []
         try:
@@ -175,7 +174,7 @@ class SocialScraper:
                 # Check rate limit
                 if not self._check_instagram_rate_limit():
                     logger.warning(f"Skipping Instagram user {username} due to rate limit")
-                    time.sleep(60)  # Wait a minute before next attempt
+                    await asyncio.sleep(60)  # Wait a minute before next attempt
                     continue
                 
                 try:
@@ -194,7 +193,7 @@ class SocialScraper:
                             if retry_count == max_retries:
                                 raise
                             logger.warning(f"Retry {retry_count} for {username} posts: {str(e)}")
-                            time.sleep(5 * retry_count)  # Exponential backoff
+                            await asyncio.sleep(5 * retry_count)  # Exponential backoff
                     
                     for post in posts:
                         # Only include posts with significant engagement
@@ -214,32 +213,32 @@ class SocialScraper:
                     continue
                 
                 # Longer delay between Instagram requests
-                time.sleep(5)
+                await asyncio.sleep(5)
                         
         except Exception as e:
             logger.error(f"Error scraping Instagram: {str(e)}")
             
         return articles
 
-    def scrape_all(self) -> List[Dict]:
+    async def scrape_all(self) -> List[Dict]:
         """Scrape from all social media sources"""
         articles = []
         
         # Scrape Twitter
         try:
-            twitter_articles = self.scrape_twitter()
+            twitter_articles = await self.scrape_twitter()
             articles.extend(twitter_articles)
             logger.info(f"Scraped {len(twitter_articles)} articles from Twitter")
         except Exception as e:
             logger.error(f"Failed to scrape Twitter: {str(e)}")
         
         # Add delay between platforms
-        time.sleep(5)
+        await asyncio.sleep(5)
         
         # Try Instagram only if we have credentials and no checkpoint required
         try:
             if settings.INSTAGRAM_USERNAME and settings.INSTAGRAM_PASSWORD:
-                instagram_articles = self.scrape_instagram()
+                instagram_articles = await self.scrape_instagram()
                 articles.extend(instagram_articles)
                 logger.info(f"Scraped {len(instagram_articles)} articles from Instagram")
             else:

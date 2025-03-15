@@ -1,4 +1,4 @@
-import smtplib
+import aiosmtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -23,7 +23,7 @@ class EmailService:
         if not self.notification_emails:
             logger.warning("No notification emails configured")
     
-    def send_error_notification(self, error_message: str):
+    async def send_error_notification(self, error_message: str):
         """Send error notification email"""
         if not self.notification_emails:
             logger.warning("No notification emails configured, skipping error notification")
@@ -47,10 +47,12 @@ class EmailService:
             msg.attach(MIMEText(body, 'plain'))
             
             # Connect to SMTP server with explicit SSL/TLS
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            smtp = aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port, use_tls=False)
+            await smtp.connect()
+            await smtp.starttls()
+            await smtp.login(self.smtp_user, self.smtp_password)
+            await smtp.send_message(msg)
+            await smtp.quit()
                 
             logger.info("Error notification email sent successfully")
             
@@ -60,7 +62,7 @@ class EmailService:
                 logger.error("Gmail requires an App Password for this account. Please generate one at https://myaccount.google.com/apppasswords")
             raise
     
-    def send_article_notification(self, article_title: str, article_url: str):
+    async def send_article_notification(self, article_title: str, article_url: str):
         """Send notification about new article"""
         if not self.notification_emails:
             logger.warning("No notification emails configured, skipping article notification")
@@ -85,10 +87,12 @@ class EmailService:
             msg.attach(MIMEText(body, 'plain'))
             
             # Connect to SMTP server with explicit SSL/TLS
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            smtp = aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port, use_tls=False)
+            await smtp.connect()
+            await smtp.starttls()
+            await smtp.login(self.smtp_user, self.smtp_password)
+            await smtp.send_message(msg)
+            await smtp.quit()
                 
             logger.info(f"Article notification email sent successfully for: {article_title}")
             

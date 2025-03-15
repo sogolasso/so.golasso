@@ -20,7 +20,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('scraper.log'),
         logging.StreamHandler()
     ]
 )
@@ -123,14 +122,19 @@ class ScrapingScheduler:
     async def gather_source_data(self) -> List[Dict]:
         """Gather and filter data from all sources"""
         try:
+            logger.info("Starting to gather source data...")
+            
             # Gather news from traditional sources
-            news_articles = self.news_scraper.scrape_all()
+            news_articles = await self.news_scraper.scrape_all()
+            logger.info(f"Gathered {len(news_articles)} news articles")
             
             # Gather news from social media
-            social_articles = self.social_scraper.scrape_all()
+            social_articles = await self.social_scraper.scrape_all()
+            logger.info(f"Gathered {len(social_articles)} social media articles")
             
             # Combine all articles
             all_articles = news_articles + social_articles
+            logger.info(f"Total articles gathered: {len(all_articles)}")
             
             # Score and filter content
             scored_articles = []
@@ -142,10 +146,13 @@ class ScrapingScheduler:
             
             # Sort by score and select top articles
             scored_articles.sort(key=lambda x: x['score'], reverse=True)
-            return scored_articles[:settings.MAX_ARTICLES_PER_CYCLE]
+            selected_articles = scored_articles[:settings.MAX_ARTICLES_PER_CYCLE]
+            logger.info(f"Selected {len(selected_articles)} articles after scoring and filtering")
+            
+            return selected_articles
             
         except Exception as e:
-            logger.error(f"Error gathering source data: {str(e)}")
+            logger.error(f"Error gathering source data: {str(e)}", exc_info=True)
             return []
 
     async def process_source_data(self, source_data: List[Dict[str, Any]]) -> List[Article]:
@@ -247,66 +254,58 @@ class ScrapingScheduler:
 
     async def run_scraping_cycle(self):
         """Run a single scraping cycle"""
-        logger.info("Starting scraping cycle...")
         try:
-            # Check article generation status without sending emails
-            try:
-                self.monitoring_service.check_article_generation(skip_notifications=True)
-            except Exception as e:
-                logger.error(f"Error in monitoring service: {str(e)}")
+            logger.info("Starting scraping cycle...")
             
             # Gather source data
-            try:
-                source_data = await self.gather_source_data()
-                if not source_data:
-                    logger.warning("No source data gathered")
-                    return
-            except Exception as e:
-                logger.error(f"Error gathering source data: {str(e)}")
+            source_data = await self.gather_source_data()
+            if not source_data:
+                logger.warning("No source data gathered, skipping cycle")
                 return
+            
+            logger.info(f"Gathered {len(source_data)} items from sources")
             
             # Process source data
-            try:
-                articles = await self.process_source_data(source_data)
-                if not articles:
-                    logger.warning("No articles generated")
-                    return
-            except Exception as e:
-                logger.error(f"Error processing source data: {str(e)}")
+            articles = await self.process_source_data(source_data)
+            if not articles:
+                logger.warning("No articles generated, skipping cycle")
                 return
+                
+            logger.info(f"Generated {len(articles)} articles")
             
             # Save articles
-            try:
-                self.save_articles(articles)
-            except Exception as e:
-                logger.error(f"Error saving articles: {str(e)}")
-                return
+            success = self.save_articles(articles)
+            if success:
+                logger.info("Successfully saved articles")
+            else:
+                logger.error("Failed to save articles")
             
             # Cleanup old drafts
-            try:
-                self.cleanup_old_drafts()
-            except Exception as e:
-                logger.error(f"Error cleaning up old drafts: {str(e)}")
-                
+            self.cleanup_old_drafts()
+            logger.info("Completed scraping cycle")
+            
         except Exception as e:
-            logger.error(f"Error in scraping cycle: {str(e)}")
-            # Only try to send error notification if it's not an email-related error
-            if "SMTPAuthenticationError" not in str(e):
-                try:
-                    self.monitoring_service.notify_error(str(e))
-                except:
-                    pass
+            logger.error(f"Error in scraping cycle: {str(e)}", exc_info=True)
+            self.email_service.send_error_notification(f"Scraping cycle error: {str(e)}")
+            
+    async def run(self):
+        """Run the scheduler continuously"""
+        logger.info("Starting scheduler...")
+        
+        while True:
+            try:
+                await self.run_scraping_cycle()
+                logger.info(f"Waiting {settings.SCRAPING_INTERVAL_MINUTES} minutes until next cycle")
+                await asyncio.sleep(settings.SCRAPING_INTERVAL_MINUTES * 60)
+            except Exception as e:
+                logger.error(f"Error in scheduler loop: {str(e)}", exc_info=True)
+                self.email_service.send_error_notification(f"Scheduler error: {str(e)}")
+                await asyncio.sleep(300)  # Wait 5 minutes before retrying after error
 
 async def run_scheduler():
     """Run the scraping scheduler continuously"""
     scheduler = ScrapingScheduler()
-    while True:
-        try:
-            await scheduler.run_scraping_cycle()
-            await asyncio.sleep(1800)  # Wait 30 minutes
-        except Exception as e:
-            logger.error(f"Error in scheduler: {str(e)}", exc_info=True)
-            await asyncio.sleep(60)  # Wait 1 minute before retrying
+    await scheduler.run()
 
 if __name__ == "__main__":
     logger.info("Starting automation manager")

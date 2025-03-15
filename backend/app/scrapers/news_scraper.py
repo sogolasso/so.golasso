@@ -1,10 +1,10 @@
-import requests
+import aiohttp
 from bs4 import BeautifulSoup
 from datetime import datetime
 from typing import List, Dict, Optional
 import logging
 import re
-from time import sleep
+import asyncio
 
 class NewsScraper:
     def __init__(self):
@@ -79,12 +79,24 @@ class NewsScraper:
             return max(scores.items(), key=lambda x: x[1])[0]
         return 'RUMOR'  # Default category if no strong matches
 
-    def scrape_ge(self) -> List[Dict]:
+    async def _fetch_page(self, session: aiohttp.ClientSession, url: str) -> str:
+        """Fetch a page using aiohttp."""
+        try:
+            async with session.get(url, headers=self.headers, timeout=30) as response:
+                return await response.text()
+        except Exception as e:
+            logging.error(f"Error fetching {url}: {str(e)}")
+            return ""
+
+    async def scrape_ge(self, session: aiohttp.ClientSession) -> List[Dict]:
         """Scrape news from Globo Esporte."""
         articles = []
         try:
-            response = requests.get(self.sources['ge'], headers=self.headers, timeout=10)
-            soup = BeautifulSoup(response.text, 'html.parser')
+            html = await self._fetch_page(session, self.sources['ge'])
+            if not html:
+                return articles
+                
+            soup = BeautifulSoup(html, 'html.parser')
             
             for article in soup.find_all('div', class_='feed-post'):
                 try:
@@ -92,8 +104,11 @@ class NewsScraper:
                     link = article.find('a', class_='feed-post-link')['href']
                     
                     # Get full article content
-                    article_response = requests.get(link, headers=self.headers, timeout=10)
-                    article_soup = BeautifulSoup(article_response.text, 'html.parser')
+                    article_html = await self._fetch_page(session, link)
+                    if not article_html:
+                        continue
+                        
+                    article_soup = BeautifulSoup(article_html, 'html.parser')
                     content_div = article_soup.find('div', class_='mc-article-body')
                     
                     if content_div:
@@ -104,7 +119,7 @@ class NewsScraper:
                             content_type = self._determine_content_type(title, content)
                             articles.append(self._create_article_dict(title, content, content_type, 'Globo Esporte', link))
                     
-                    sleep(1)  # Respect rate limiting
+                    await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
                     logging.error(f"Error scraping GE article: {str(e)}")
                     continue
@@ -114,12 +129,15 @@ class NewsScraper:
         
         return articles
 
-    def scrape_espn(self) -> List[Dict]:
+    async def scrape_espn(self, session: aiohttp.ClientSession) -> List[Dict]:
         """Scrape news from ESPN Brasil."""
         articles = []
         try:
-            response = requests.get(self.sources['espn'], headers=self.headers, timeout=10)
-            soup = BeautifulSoup(response.text, 'html.parser')
+            html = await self._fetch_page(session, self.sources['espn'])
+            if not html:
+                return articles
+                
+            soup = BeautifulSoup(html, 'html.parser')
             
             for article in soup.find_all('article', class_='contentItem'):
                 try:
@@ -133,8 +151,11 @@ class NewsScraper:
                         link = 'https://www.espn.com.br' + link
                     
                     # Get full article content
-                    article_response = requests.get(link, headers=self.headers, timeout=10)
-                    article_soup = BeautifulSoup(article_response.text, 'html.parser')
+                    article_html = await self._fetch_page(session, link)
+                    if not article_html:
+                        continue
+                        
+                    article_soup = BeautifulSoup(article_html, 'html.parser')
                     content_div = article_soup.find('div', class_='article-body')
                     
                     if content_div:
@@ -145,7 +166,7 @@ class NewsScraper:
                             content_type = self._determine_content_type(title, content)
                             articles.append(self._create_article_dict(title, content, content_type, 'ESPN Brasil', link))
                     
-                    sleep(1)  # Respect rate limiting
+                    await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
                     logging.error(f"Error scraping ESPN article: {str(e)}")
                     continue
@@ -155,12 +176,15 @@ class NewsScraper:
         
         return articles
 
-    def scrape_lance(self) -> List[Dict]:
+    async def scrape_lance(self, session: aiohttp.ClientSession) -> List[Dict]:
         """Scrape news from Lance."""
         articles = []
         try:
-            response = requests.get(self.sources['lance'], headers=self.headers, timeout=10)
-            soup = BeautifulSoup(response.text, 'html.parser')
+            html = await self._fetch_page(session, self.sources['lance'])
+            if not html:
+                return articles
+                
+            soup = BeautifulSoup(html, 'html.parser')
             
             for article in soup.find_all('article', class_='news-item'):
                 try:
@@ -168,8 +192,11 @@ class NewsScraper:
                     link = article.find('a')['href']
                     
                     # Get full article content
-                    article_response = requests.get(link, headers=self.headers, timeout=10)
-                    article_soup = BeautifulSoup(article_response.text, 'html.parser')
+                    article_html = await self._fetch_page(session, link)
+                    if not article_html:
+                        continue
+                        
+                    article_soup = BeautifulSoup(article_html, 'html.parser')
                     content_div = article_soup.find('div', class_='content-text')
                     
                     if content_div:
@@ -180,7 +207,7 @@ class NewsScraper:
                             content_type = self._determine_content_type(title, content)
                             articles.append(self._create_article_dict(title, content, content_type, 'Lance!', link))
                     
-                    sleep(1)  # Respect rate limiting
+                    await asyncio.sleep(1)  # Respect rate limiting
                 except Exception as e:
                     logging.error(f"Error scraping Lance article: {str(e)}")
                     continue
@@ -205,37 +232,38 @@ class NewsScraper:
             'summary': content[:200] + "..." if len(content) > 200 else content
         }
 
-    def scrape_all(self) -> List[Dict]:
+    async def scrape_all(self) -> List[Dict]:
         """Scrape news from all sources."""
         all_articles = []
         
-        # Scrape from all sources
-        ge_articles = self.scrape_ge()
-        all_articles.extend(ge_articles)
-        logging.info(f"Scraped {len(ge_articles)} articles from Globo Esporte")
-        
-        espn_articles = self.scrape_espn()
-        all_articles.extend(espn_articles)
-        logging.info(f"Scraped {len(espn_articles)} articles from ESPN Brasil")
-        
-        lance_articles = self.scrape_lance()
-        all_articles.extend(lance_articles)
-        logging.info(f"Scraped {len(lance_articles)} articles from Lance!")
+        async with aiohttp.ClientSession() as session:
+            # Scrape from all sources
+            ge_articles = await self.scrape_ge(session)
+            all_articles.extend(ge_articles)
+            logging.info(f"Scraped {len(ge_articles)} articles from Globo Esporte")
+            
+            espn_articles = await self.scrape_espn(session)
+            all_articles.extend(espn_articles)
+            logging.info(f"Scraped {len(espn_articles)} articles from ESPN Brasil")
+            
+            lance_articles = await self.scrape_lance(session)
+            all_articles.extend(lance_articles)
+            logging.info(f"Scraped {len(lance_articles)} articles from Lance!")
         
         return all_articles
 
     async def scrape(self) -> List[Dict]:
         """Scrape news from all sources."""
         try:
-            return self.scrape_all()
+            return await self.scrape_all()
         except Exception as e:
             logging.error(f"Error scraping news: {str(e)}")
             return []
 
-def get_latest_news() -> List[Dict]:
+async def get_latest_news() -> List[Dict]:
     """Get the latest football news."""
     scraper = NewsScraper()
-    articles = scraper.scrape_all()
+    articles = await scraper.scrape_all()
     return articles
 
 if __name__ == "__main__":
@@ -246,7 +274,7 @@ if __name__ == "__main__":
     )
     
     # Get and display articles
-    articles = get_latest_news()
+    articles = asyncio.run(get_latest_news())
     print(f"\nFound {len(articles)} articles:")
     for idx, article in enumerate(articles, 1):
         print(f"\n{idx}. {article['title']}")
