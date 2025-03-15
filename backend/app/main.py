@@ -14,14 +14,20 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.core.config import settings
+from app.api.v1.api import api_router
+from app.core.database import engine, Base
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    version=getattr(settings, "VERSION", "1.0.0"),  # Use getattr with default
 )
 
 # Set up CORS
@@ -45,11 +51,21 @@ async def root():
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": settings.VERSION
-    }
+    """Health check endpoint"""
+    try:
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": getattr(settings, "VERSION", "1.0.0"),  # Use getattr with default
+            "environment": settings.ENVIRONMENT
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 # Keep-alive background task
 async def keep_alive():
@@ -75,7 +91,6 @@ async def startup_event():
 
 # Import and include API router
 try:
-    from app.api.v1.api import api_router
     app.include_router(api_router, prefix=settings.API_V1_STR)
     logger.info("API routes registered successfully")
 except Exception as e:

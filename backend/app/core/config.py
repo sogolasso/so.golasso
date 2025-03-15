@@ -2,15 +2,17 @@ from pydantic_settings import BaseSettings
 from typing import Optional, Literal, List
 from functools import lru_cache
 import os
+from pydantic import validator
 
 class Settings(BaseSettings):
     # Base settings
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
-    PROJECT_NAME: str = "Só Golasso"
+    PROJECT_NAME: str = "Football Digest"
     API_V1_STR: str = "/api/v1"
-    FRONTEND_URL: str = "https://sogolasso.me"
+    FRONTEND_URL: str = "http://localhost:3000"
     DEBUG: bool = False
     PORT: int = int(os.getenv("PORT", "10000"))  # Default to 10000 if not set
+    VERSION: str = "1.0.0"  # Added version setting
     
     # Database (Required)
     DATABASE_URL: str
@@ -31,14 +33,14 @@ class Settings(BaseSettings):
     INSTAGRAM_PASSWORD: Optional[str] = None
     
     # OpenAI (Required)
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: Optional[str] = None
     MAX_MONTHLY_AI_COST: float = 100.0
     
     # Content Settings
     MIN_ARTICLE_LENGTH: int = 300
     MAX_ARTICLE_LENGTH: int = 5000
     CONTENT_RETENTION_DAYS: int = 365
-    MAX_ARTICLES_PER_CYCLE: int = 20
+    MAX_ARTICLES_PER_CYCLE: int = 10
     
     # Distribution Settings
     POSTS_PER_DAY: int = 10
@@ -47,7 +49,7 @@ class Settings(BaseSettings):
     MAX_DAILY_MEME_POSTS: int = 2
     
     # Scheduler Settings
-    SCRAPING_INTERVAL_MINUTES: int = 30  # Run every 30 minutes
+    SCRAPING_INTERVAL_MINUTES: int = 60
     
     # Rate Limiting Settings
     TWITTER_REQUESTS_PER_WINDOW: int = 100
@@ -70,6 +72,21 @@ class Settings(BaseSettings):
         "goncalo.r.xavier@gmail.com"
     ]
     
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    
+    @validator("DATABASE_URL")
+    def validate_database_url(cls, v):
+        if not v:
+            raise ValueError("DATABASE_URL must be set")
+        return v
+        
+    @validator("OPENAI_API_KEY")
+    def validate_openai_key(cls, v):
+        if not v:
+            raise ValueError("OPENAI_API_KEY must be set")
+        return v
+        
     class Config:
         env_file = ".env"
         case_sensitive = True
