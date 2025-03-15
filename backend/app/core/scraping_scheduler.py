@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from slugify import slugify
+from sqlalchemy import text
 
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -206,7 +207,7 @@ class ScrapingScheduler:
             logger.error(f"Error in process_source_data: {str(e)}", exc_info=True)
             return []
 
-    def save_articles(self, articles: List[Article]) -> bool:
+    async def save_articles(self, articles: List[Article]) -> bool:
         """Save generated articles to database"""
         try:
             logger.info(f"Saving {len(articles)} articles to database...")
@@ -218,16 +219,16 @@ class ScrapingScheduler:
                     
                     # Send email notification
                     article_url = f"{settings.FRONTEND_URL}/articles/{article.slug}"
-                    self.email_service.send_article_notification(article.title, article_url)
+                    await self.email_service.send_article_notification(article.title, article_url)
                     
                 except Exception as e:
                     logger.error(f"Error saving article {article.title}: {str(e)}")
                     self.db.rollback()
-                    self.email_service.send_error_notification(str(e))
+                    await self.email_service.send_error_notification(str(e))
             return True
         except Exception as e:
             logger.error(f"Error in save_articles: {str(e)}", exc_info=True)
-            self.email_service.send_error_notification(str(e))
+            await self.email_service.send_error_notification(str(e))
             return False
 
     def cleanup_old_drafts(self):
@@ -266,7 +267,7 @@ class ScrapingScheduler:
             
             # Verify database connection
             try:
-                self.db.execute("SELECT 1")
+                self.db.execute(text("SELECT 1"))
                 logger.info("Database connection verified")
             except Exception as e:
                 logger.error(f"Database connection failed: {str(e)}")
@@ -306,7 +307,7 @@ class ScrapingScheduler:
             
             # Save articles
             logger.info("Starting to save articles...")
-            success = self.save_articles(articles)
+            success = await self.save_articles(articles)
             if success:
                 logger.info("Successfully saved articles")
             else:
@@ -318,7 +319,7 @@ class ScrapingScheduler:
             
         except Exception as e:
             logger.error(f"Error in scraping cycle: {str(e)}", exc_info=True)
-            self.email_service.send_error_notification(f"Scraping cycle error: {str(e)}")
+            await self.email_service.send_error_notification(f"Scraping cycle error: {str(e)}")
             
     async def run(self):
         """Run the scheduler continuously"""
@@ -339,7 +340,7 @@ class ScrapingScheduler:
                 await asyncio.sleep(settings.SCRAPING_INTERVAL_MINUTES * 60)
             except Exception as e:
                 logger.error(f"Error in scheduler loop: {str(e)}", exc_info=True)
-                self.email_service.send_error_notification(f"Scheduler error: {str(e)}")
+                await self.email_service.send_error_notification(f"Scheduler error: {str(e)}")
                 await asyncio.sleep(300)  # Wait 5 minutes before retrying after error
 
 async def run_scheduler():

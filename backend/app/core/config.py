@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     MAX_DAILY_TRENDING_POSTS: int = 5
     MAX_DAILY_MEME_POSTS: int = 2
     
+    # Scheduler Settings
+    SCRAPING_INTERVAL_MINUTES: int = 30  # Run every 30 minutes
+    
     # Rate Limiting Settings
     TWITTER_REQUESTS_PER_WINDOW: int = 100
     TWITTER_WINDOW_MINUTES: int = 15
