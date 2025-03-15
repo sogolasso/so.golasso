@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Add the backend directory to Python path
 backend_dir = Path(__file__).resolve().parent.parent
@@ -25,6 +26,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Root endpoint
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "message": "Football Digest API is running",
+        "version": "1.0.0"
+    }
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "football-digest-api",
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)

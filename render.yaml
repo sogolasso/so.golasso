@@ -5,6 +5,8 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: cd backend && PYTHONPATH=$PYTHONPATH:. gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    healthCheckPath: /health
+    healthCheckTimeout: 60
     envVars:
       - key: PORT
         value: 10000
