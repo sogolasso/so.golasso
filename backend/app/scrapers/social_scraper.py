@@ -4,7 +4,7 @@ import instaloader
 import os
 import json
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from app.core.config import settings
 import time
@@ -15,15 +15,24 @@ logger = logging.getLogger(__name__)
 
 class SocialScraper:
     def __init__(self):
-        # Twitter API credentials
+        # Twitter API credentials and client with better rate limit handling
         self.twitter_client = tweepy.Client(
             bearer_token=settings.TWITTER_BEARER_TOKEN,
             consumer_key=settings.TWITTER_API_KEY,
             consumer_secret=settings.TWITTER_API_SECRET,
             access_token=settings.TWITTER_ACCESS_TOKEN,
             access_token_secret=settings.TWITTER_ACCESS_TOKEN_SECRET,
-            wait_on_rate_limit=True  # Let tweepy handle rate limiting
+            wait_on_rate_limit=True,  # Let tweepy handle rate limiting
+            return_type=dict  # Return dictionary instead of Response object
         )
+        
+        # Cache for Twitter user IDs to reduce API calls
+        self.twitter_user_cache = {}
+        
+        # Track Twitter request times for manual rate limiting
+        self.twitter_requests = []
+        self.twitter_user_requests = []
+        self.twitter_tweet_requests = []
         
         # Instagram client
         self.instagram = instaloader.Instaloader(
@@ -134,42 +143,124 @@ class SocialScraper:
         """Track a new Instagram request"""
         self.instagram_requests.append(datetime.now())
 
-    async def _get_twitter_user(self, username: str) -> Dict:
-        """Get Twitter user info with retries"""
+    def _check_twitter_rate_limit(self, request_type: str) -> bool:
+        """Check if we've hit Twitter's rate limit for a specific request type"""
+        now = datetime.now()
+        
+        # Different windows and limits for different request types
+        if request_type == "user":
+            window_minutes = 15
+            max_requests = 75  # User lookup endpoint limit
+            requests = self.twitter_user_requests
+        elif request_type == "tweets":
+            window_minutes = 15
+            max_requests = 180  # User tweets endpoint limit
+            requests = self.twitter_tweet_requests
+        else:
+            window_minutes = 15
+            max_requests = 180  # Default limit
+            requests = self.twitter_requests
+            
+        window_start = now - timedelta(minutes=window_minutes)
+        
+        # Remove old requests from tracking
+        requests[:] = [t for t in requests if t > window_start]
+        
+        # Check if we've hit the limit
+        if len(requests) >= max_requests:
+            wait_time = (requests[0] + timedelta(minutes=window_minutes) - now).total_seconds()
+            if wait_time > 0:
+                logger.warning(f"Twitter rate limit reached for {request_type}. Need to wait {wait_time:.0f} seconds")
+                return False
+            
+        return True
+        
+    def _track_twitter_request(self, request_type: str):
+        """Track a new Twitter request"""
+        now = datetime.now()
+        self.twitter_requests.append(now)
+        
+        if request_type == "user":
+            self.twitter_user_requests.append(now)
+        elif request_type == "tweets":
+            self.twitter_tweet_requests.append(now)
+
+    async def _get_twitter_user(self, username: str) -> Optional[Dict]:
+        """Get Twitter user info with caching and retries"""
+        # Check cache first
+        if username in self.twitter_user_cache:
+            return self.twitter_user_cache[username]
+            
+        # Check rate limit
+        if not self._check_twitter_rate_limit("user"):
+            window_reset = self.twitter_user_requests[0] + timedelta(minutes=15)
+            wait_time = (window_reset - datetime.now()).total_seconds()
+            if wait_time > 0:
+                logger.info(f"Waiting {wait_time:.0f} seconds for Twitter user rate limit reset")
+                await asyncio.sleep(wait_time)
+        
         max_retries = 3
         retry_count = 0
         while retry_count < max_retries:
             try:
+                self._track_twitter_request("user")
                 loop = asyncio.get_event_loop()
-                user = await loop.run_in_executor(None, self.twitter_client.get_user, username)
-                return user
+                user = await loop.run_in_executor(
+                    None,
+                    lambda: self.twitter_client.get_user(username=username)
+                )
+                
+                if user and 'data' in user:
+                    # Cache the result
+                    self.twitter_user_cache[username] = user
+                    return user
+                    
+                return None
+                
             except Exception as e:
                 retry_count += 1
                 if retry_count == max_retries:
-                    raise
+                    logger.error(f"Failed to get Twitter user {username} after {max_retries} retries: {str(e)}")
+                    return None
                 logger.warning(f"Retry {retry_count} for Twitter user {username}: {str(e)}")
                 await asyncio.sleep(5 * retry_count)  # Exponential backoff
 
-    async def _get_twitter_tweets(self, user_id: str) -> Dict:
-        """Get Twitter tweets with retries"""
+    async def _get_twitter_tweets(self, user_id: str) -> Optional[Dict]:
+        """Get Twitter tweets with rate limit handling and retries"""
+        # Check rate limit
+        if not self._check_twitter_rate_limit("tweets"):
+            window_reset = self.twitter_tweet_requests[0] + timedelta(minutes=15)
+            wait_time = (window_reset - datetime.now()).total_seconds()
+            if wait_time > 0:
+                logger.info(f"Waiting {wait_time:.0f} seconds for Twitter tweets rate limit reset")
+                await asyncio.sleep(wait_time)
+        
         max_retries = 3
         retry_count = 0
         while retry_count < max_retries:
             try:
+                self._track_twitter_request("tweets")
                 loop = asyncio.get_event_loop()
                 tweets = await loop.run_in_executor(
                     None,
                     lambda: self.twitter_client.get_users_tweets(
                         user_id,
-                        max_results=5,
-                        tweet_fields=['created_at', 'public_metrics']
+                        max_results=5,  # Reduced from 10 to save on API calls
+                        tweet_fields=['created_at', 'public_metrics'],
+                        exclude=['retweets', 'replies']  # Only get original tweets
                     )
                 )
-                return tweets
+                
+                if tweets and 'data' in tweets:
+                    return tweets
+                    
+                return None
+                
             except Exception as e:
                 retry_count += 1
                 if retry_count == max_retries:
-                    raise
+                    logger.error(f"Failed to get tweets for user {user_id} after {max_retries} retries: {str(e)}")
+                    return None
                 logger.warning(f"Retry {retry_count} for tweets from user {user_id}: {str(e)}")
                 await asyncio.sleep(5 * retry_count)  # Exponential backoff
 
@@ -179,31 +270,34 @@ class SocialScraper:
         try:
             for username in self.twitter_accounts:
                 try:
-                    # Get user info with retries
-                    user = await self._get_twitter_user(username)
-                    if not user or not user.data:
+                    # Get user info with retries and caching
+                    user_response = await self._get_twitter_user(username)
+                    if not user_response or 'data' not in user_response:
                         logger.warning(f"Could not find Twitter user: {username}")
                         continue
                     
-                    # Get tweets with retries
-                    tweets = await self._get_twitter_tweets(user.data.id)
+                    user_id = user_response['data']['id']
                     
-                    if tweets and tweets.data:
-                        for tweet in tweets.data:
-                            # Only include tweets with media or significant engagement
-                            if tweet.public_metrics['retweet_count'] > 10 or tweet.public_metrics['like_count'] > 50:
+                    # Get tweets with retries
+                    tweets_response = await self._get_twitter_tweets(user_id)
+                    
+                    if tweets_response and 'data' in tweets_response:
+                        for tweet in tweets_response['data']:
+                            # Only include tweets with significant engagement
+                            metrics = tweet['public_metrics']
+                            if metrics['retweet_count'] > 10 or metrics['like_count'] > 50:
                                 articles.append({
-                                    'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
-                                    'content': tweet.text,
-                                    'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
+                                    'title': tweet['text'][:100] + '...' if len(tweet['text']) > 100 else tweet['text'],
+                                    'content': tweet['text'],
+                                    'source_url': f"https://twitter.com/{username}/status/{tweet['id']}",
                                     'source_type': 'twitter',
-                                    'published_at': tweet.created_at,
+                                    'published_at': tweet['created_at'],
                                     'author': username,
-                                    'engagement_count': tweet.public_metrics['retweet_count'] + tweet.public_metrics['like_count']
+                                    'engagement_count': metrics['retweet_count'] + metrics['like_count']
                                 })
                     
-                    # Small delay between accounts even with rate limiting
-                    await asyncio.sleep(1)
+                    # Small delay between accounts
+                    await asyncio.sleep(2)
                     
                 except Exception as e:
                     logger.error(f"Error processing Twitter user {username}: {str(e)}")
