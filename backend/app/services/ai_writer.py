@@ -29,6 +29,8 @@ class AIWriter:
         try:
             # Log the attempt
             logger.info(f"Attempting to generate article: {title}")
+            logger.info(f"Source type: {source_type}")
+            logger.info(f"Source text length: {len(source_text)} characters")
             
             # Check if we can generate more articles today
             if not self.usage_tracker.can_generate_article():
@@ -49,22 +51,29 @@ class AIWriter:
             
             # Create a prompt based on the source type and content
             prompt = self._create_prompt(title, source_text, source_type)
+            logger.info("Created prompt for article generation")
             
             # Generate content using OpenAI
             logger.info("Sending request to OpenAI...")
-            response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a professional sports journalist specializing in football (soccer). Write engaging, accurate, and well-structured articles."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=1000
-            )
+            try:
+                response = await self.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a professional sports journalist specializing in football (soccer). Write engaging, accurate, and well-structured articles."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=1000
+                )
+                logger.info("Successfully received response from OpenAI")
+            except Exception as e:
+                logger.error(f"OpenAI API error: {str(e)}")
+                return None
             
             # Calculate cost (approximate)
             tokens_used = response.usage.total_tokens
             cost = (tokens_used / 1000) * 0.002  # $0.002 per 1K tokens for GPT-3.5
+            logger.info(f"Used {tokens_used} tokens (cost: ${cost:.4f})")
             
             # Track usage
             self.usage_tracker.track_usage(tokens_used, cost)
@@ -72,6 +81,7 @@ class AIWriter:
             # Parse the response
             content = response.choices[0].message.content
             logger.info("Successfully generated article content")
+            logger.info(f"Generated content length: {len(content)} characters")
             
             # Generate a summary
             logger.info("Generating summary...")
@@ -98,6 +108,8 @@ class AIWriter:
             # Cache the article
             self.usage_tracker.cache_article(content_hash, article_data)
             logger.info(f"Successfully generated article: {title}")
+            logger.info(f"Category: {category}")
+            logger.info(f"Author: {author_details['name']}")
             
             return article_data
             

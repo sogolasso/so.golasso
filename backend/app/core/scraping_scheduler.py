@@ -257,7 +257,23 @@ class ScrapingScheduler:
         try:
             logger.info("Starting scraping cycle...")
             
+            # Verify OpenAI API key
+            if not settings.OPENAI_API_KEY:
+                logger.error("OpenAI API key is not set!")
+                return
+            else:
+                logger.info("OpenAI API key is configured")
+            
+            # Verify database connection
+            try:
+                self.db.execute("SELECT 1")
+                logger.info("Database connection verified")
+            except Exception as e:
+                logger.error(f"Database connection failed: {str(e)}")
+                return
+            
             # Gather source data
+            logger.info("Starting to gather source data...")
             source_data = await self.gather_source_data()
             if not source_data:
                 logger.warning("No source data gathered, skipping cycle")
@@ -265,7 +281,15 @@ class ScrapingScheduler:
             
             logger.info(f"Gathered {len(source_data)} items from sources")
             
+            # Log source data details
+            for idx, item in enumerate(source_data):
+                logger.info(f"Source item {idx + 1}:")
+                logger.info(f"  Title: {item.get('title', 'No title')}")
+                logger.info(f"  Source: {item.get('source_type', 'Unknown source')}")
+                logger.info(f"  Score: {item.get('score', 0)}")
+            
             # Process source data
+            logger.info("Starting article generation...")
             articles = await self.process_source_data(source_data)
             if not articles:
                 logger.warning("No articles generated, skipping cycle")
@@ -273,7 +297,15 @@ class ScrapingScheduler:
                 
             logger.info(f"Generated {len(articles)} articles")
             
+            # Log generated articles
+            for idx, article in enumerate(articles):
+                logger.info(f"Generated article {idx + 1}:")
+                logger.info(f"  Title: {article.title}")
+                logger.info(f"  Category: {article.category}")
+                logger.info(f"  Author: {article.author_name}")
+            
             # Save articles
+            logger.info("Starting to save articles...")
             success = self.save_articles(articles)
             if success:
                 logger.info("Successfully saved articles")
@@ -291,6 +323,14 @@ class ScrapingScheduler:
     async def run(self):
         """Run the scheduler continuously"""
         logger.info("Starting scheduler...")
+        
+        # Verify configuration
+        logger.info("Verifying configuration...")
+        logger.info(f"OPENAI_API_KEY set: {'Yes' if settings.OPENAI_API_KEY else 'No'}")
+        logger.info(f"DATABASE_URL set: {'Yes' if settings.DATABASE_URL else 'No'}")
+        logger.info(f"SMTP settings configured: {'Yes' if settings.SMTP_USER and settings.SMTP_PASSWORD else 'No'}")
+        logger.info(f"Max articles per cycle: {settings.MAX_ARTICLES_PER_CYCLE}")
+        logger.info(f"Min content score: {settings.MIN_CONTENT_SCORE}")
         
         while True:
             try:
