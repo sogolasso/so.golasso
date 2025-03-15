@@ -41,13 +41,13 @@ class SocialScraper:
         
         # Twitter accounts to monitor
         self.twitter_accounts = [
-            'geglobo',        # Globo Esporte
-            'ESPNBrasil',     # ESPN Brasil
+            'ge',             # Globo Esporte (updated from geglobo)
+            'espnbrasil',     # ESPN Brasil (lowercase)
             'lancenet',       # Lance!
-            'CBF_Futebol',    # CBF
-            'Brasileirao',    # Brasileirão
+            'cbf_futebol',    # CBF (lowercase)
+            'brasileirao',    # Brasileirão (lowercase)
             'LibertadoresBR', # Libertadores
-            'CopadoBrasil'    # Copa do Brasil
+            'copadobrasil'    # Copa do Brasil (lowercase)
         ]
         
         # Instagram accounts to monitor
