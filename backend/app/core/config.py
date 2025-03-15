@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     FRONTEND_URL: str = "https://sogolasso.me"
     DEBUG: bool = False
+    PORT: int = int(os.getenv("PORT", "10000"))  # Default to 10000 if not set
     
     # Database (Required)
     DATABASE_URL: str
