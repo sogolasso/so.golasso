@@ -39,7 +39,7 @@ class ScrapingScheduler:
         )
         self.db = SessionLocal()
         self.email_service = EmailService()
-        self.monitoring_service = MonitoringService(self.db)
+        self.monitoring_service = MonitoringService(self.db, self.email_service)
         
     def _score_content(self, item: Dict[str, Any]) -> float:
         """Score content based on relevance and engagement potential"""
@@ -245,7 +245,7 @@ class ScrapingScheduler:
             logger.error(f"Error in cleanup_old_drafts: {str(e)}", exc_info=True)
             self.db.rollback()
 
-    def run_scraping_cycle(self):
+    async def run_scraping_cycle(self):
         """Run a single scraping cycle"""
         logger.info("Starting scraping cycle...")
         try:
@@ -257,7 +257,7 @@ class ScrapingScheduler:
             
             # Gather source data
             try:
-                source_data = self.gather_source_data()
+                source_data = await self.gather_source_data()
                 if not source_data:
                     logger.warning("No source data gathered")
                     return
@@ -267,7 +267,7 @@ class ScrapingScheduler:
             
             # Process source data
             try:
-                articles = self.process_source_data(source_data)
+                articles = await self.process_source_data(source_data)
                 if not articles:
                     logger.warning("No articles generated")
                     return
