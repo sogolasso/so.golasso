@@ -23,8 +23,13 @@ services:
   - type: worker
     name: football-digest-scraper
     env: python
+    plan: starter # Specify the plan to ensure proper worker configuration
     buildCommand: pip install -r requirements.txt
     startCommand: cd backend && PYTHONPATH=$PYTHONPATH:. python scripts/run_scheduler.py
+    # Worker-specific settings
+    numInstances: 1
+    autoscaling:
+      enabled: false
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
