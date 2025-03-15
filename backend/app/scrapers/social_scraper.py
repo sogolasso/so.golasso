@@ -46,9 +46,12 @@ class SocialScraper:
             max_connection_attempts=3,
             request_timeout=30,
             sleep=True,  # Enable sleeping between requests
-            sleep_time_between_requests=3,  # Sleep 3 seconds between requests
             fatal_status_codes=[400, 429]  # Don't consider 401 as fatal
         )
+        
+        # Set custom sleep time for Instagram requests
+        if hasattr(self.instagram.context, "sleep_between_requests"):
+            self.instagram.context.sleep_between_requests = 3
         
         # Try to login to Instagram using session
         try:
