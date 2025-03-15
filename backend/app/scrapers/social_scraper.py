@@ -139,17 +139,24 @@ class SocialScraper:
             return None
             
         try:
-            user = self.twitter_client.get_user(username=username)
-            if user and user.data:
-                user_data = {
-                    'id': user.data.id,
-                    'name': user.data.name,
-                    'username': user.data.username
+            response = self.twitter_client.get_user(username=username)
+            
+            # Handle both Response object and dictionary responses
+            if isinstance(response, dict):
+                user_data = response.get('data', {})
+            else:
+                user_data = response.data if hasattr(response, 'data') else None
+                
+            if user_data:
+                user_info = {
+                    'id': user_data.get('id') if isinstance(user_data, dict) else user_data.id,
+                    'name': user_data.get('name') if isinstance(user_data, dict) else user_data.name,
+                    'username': user_data.get('username') if isinstance(user_data, dict) else user_data.username
                 }
                 # Cache for 24 hours
-                self.twitter_cache[username] = user_data
+                self.twitter_cache[username] = user_info
                 self.twitter_cache_time[username] = datetime.now()
-                return user_data
+                return user_info
                 
         except tweepy.TooManyRequests as e:
             logger.warning("Twitter rate limit exceeded for user lookup")
@@ -166,13 +173,21 @@ class SocialScraper:
             return None
             
         try:
-            tweets = self.twitter_client.get_users_tweets(
+            response = self.twitter_client.get_users_tweets(
                 user_id,
                 max_results=5,  # Reduced from 10 to save on API calls
                 tweet_fields=['created_at', 'public_metrics'],
                 exclude=['retweets', 'replies']
             )
-            return tweets
+            
+            # Handle both Response object and dictionary responses
+            if isinstance(response, dict):
+                return response
+            else:
+                return {
+                    'data': response.data,
+                    'meta': response.meta if hasattr(response, 'meta') else {}
+                }
                 
         except tweepy.TooManyRequests as e:
             logger.warning("Twitter rate limit exceeded for tweet lookup")
@@ -195,25 +210,44 @@ class SocialScraper:
                     # Get user info with caching
                     user = await self._get_twitter_user(username)
                     if not user:
+                        logger.warning(f"Could not find Twitter user: {username}")
                         continue
                     
                     # Get tweets with rate limit handling
                     tweets_response = await self._get_twitter_tweets(user['id'])
-                    if not tweets_response or 'data' not in tweets_response:
+                    if not tweets_response:
+                        continue
+                        
+                    tweets_data = tweets_response.get('data', [])
+                    if not tweets_data:
                         continue
                     
                     # Process tweets
-                    for tweet in tweets_response.data:
-                        metrics = tweet.public_metrics
-                        if metrics['retweet_count'] > 10 or metrics['like_count'] > 50:
+                    for tweet in tweets_data:
+                        # Handle both dictionary and Response.Tweet objects
+                        if isinstance(tweet, dict):
+                            tweet_text = tweet.get('text', '')
+                            tweet_id = tweet.get('id')
+                            created_at = tweet.get('created_at')
+                            metrics = tweet.get('public_metrics', {})
+                        else:
+                            tweet_text = tweet.text
+                            tweet_id = tweet.id
+                            created_at = tweet.created_at
+                            metrics = tweet.public_metrics
+                            
+                        retweets = metrics.get('retweet_count', 0) if isinstance(metrics, dict) else metrics.retweet_count
+                        likes = metrics.get('like_count', 0) if isinstance(metrics, dict) else metrics.like_count
+                        
+                        if retweets > 10 or likes > 50:
                             articles.append({
-                                'title': tweet.text[:100] + '...' if len(tweet.text) > 100 else tweet.text,
-                                'content': tweet.text,
-                                'source_url': f"https://twitter.com/{username}/status/{tweet.id}",
+                                'title': tweet_text[:100] + '...' if len(tweet_text) > 100 else tweet_text,
+                                'content': tweet_text,
+                                'source_url': f"https://twitter.com/{username}/status/{tweet_id}",
                                 'source_type': 'twitter',
-                                'published_at': tweet.created_at,
+                                'published_at': created_at,
                                 'author': username,
-                                'engagement_count': metrics['retweet_count'] + metrics['like_count']
+                                'engagement_count': retweets + likes
                             })
                     
                     # Small delay between accounts
