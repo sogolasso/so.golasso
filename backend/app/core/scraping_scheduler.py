@@ -245,38 +245,57 @@ class ScrapingScheduler:
             logger.error(f"Error in cleanup_old_drafts: {str(e)}", exc_info=True)
             self.db.rollback()
 
-    async def run_scraping_cycle(self):
-        """Run one complete scraping cycle"""
+    def run_scraping_cycle(self):
+        """Run a single scraping cycle"""
+        logger.info("Starting scraping cycle...")
         try:
-            logger.info("Starting scraping cycle...")
+            # Check article generation status without sending emails
+            try:
+                self.monitoring_service.check_article_generation(skip_notifications=True)
+            except Exception as e:
+                logger.error(f"Error in monitoring service: {str(e)}")
             
-            # Check for any issues with article generation
-            self.monitoring_service.check_article_generation()
+            # Gather source data
+            try:
+                source_data = self.gather_source_data()
+                if not source_data:
+                    logger.warning("No source data gathered")
+                    return
+            except Exception as e:
+                logger.error(f"Error gathering source data: {str(e)}")
+                return
             
-            # Gather data from sources
-            source_data = await self.gather_source_data()
-            if not source_data:
-                logger.warning("No source data gathered")
+            # Process source data
+            try:
+                articles = self.process_source_data(source_data)
+                if not articles:
+                    logger.warning("No articles generated")
+                    return
+            except Exception as e:
+                logger.error(f"Error processing source data: {str(e)}")
                 return
-
-            # Process data and generate articles
-            articles = await self.process_source_data(source_data)
-            if not articles:
-                logger.warning("No articles generated")
+            
+            # Save articles
+            try:
+                self.save_articles(articles)
+            except Exception as e:
+                logger.error(f"Error saving articles: {str(e)}")
                 return
-
-            # Save articles to database
-            if self.save_articles(articles):
-                logger.info("Scraping cycle completed successfully")
-            else:
-                logger.error("Failed to save articles")
-
-            # Clean up old drafts
-            self.cleanup_old_drafts()
-
+            
+            # Cleanup old drafts
+            try:
+                self.cleanup_old_drafts()
+            except Exception as e:
+                logger.error(f"Error cleaning up old drafts: {str(e)}")
+                
         except Exception as e:
-            logger.error(f"Error in scraping cycle: {str(e)}", exc_info=True)
-            self.email_service.send_error_notification(f"Scraping cycle failed: {str(e)}")
+            logger.error(f"Error in scraping cycle: {str(e)}")
+            # Only try to send error notification if it's not an email-related error
+            if "SMTPAuthenticationError" not in str(e):
+                try:
+                    self.monitoring_service.notify_error(str(e))
+                except:
+                    pass
 
 async def run_scheduler():
     """Run the scraping scheduler continuously"""

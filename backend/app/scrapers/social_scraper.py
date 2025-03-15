@@ -87,6 +87,8 @@ class SocialScraper:
                 return
             except Exception as e:
                 logger.warning(f"Failed to load Instagram session: {str(e)}")
+                if session_path.exists():
+                    session_path.unlink()  # Delete invalid session file
         
         # Create new session
         try:
@@ -94,7 +96,13 @@ class SocialScraper:
             self.instagram.save_session_to_file(session_path)
             logger.info("Created and saved new Instagram session")
         except Exception as e:
-            logger.error(f"Failed to create Instagram session: {str(e)}")
+            error_msg = str(e)
+            if "Checkpoint required" in error_msg:
+                checkpoint_url = error_msg.split("Point your browser to ")[1].split(" -")[0]
+                logger.error(f"Instagram requires security verification. Please visit: {checkpoint_url}")
+                logger.error("After completing verification, delete the session file and restart the service")
+            else:
+                logger.error(f"Failed to create Instagram session: {error_msg}")
             raise
     
     def _check_instagram_rate_limit(self) -> bool:
@@ -218,14 +226,28 @@ class SocialScraper:
         articles = []
         
         # Scrape Twitter
-        twitter_articles = self.scrape_twitter()
-        articles.extend(twitter_articles)
+        try:
+            twitter_articles = self.scrape_twitter()
+            articles.extend(twitter_articles)
+            logger.info(f"Scraped {len(twitter_articles)} articles from Twitter")
+        except Exception as e:
+            logger.error(f"Failed to scrape Twitter: {str(e)}")
         
         # Add delay between platforms
         time.sleep(5)
         
-        # Scrape Instagram
-        instagram_articles = self.scrape_instagram()
-        articles.extend(instagram_articles)
+        # Try Instagram only if we have credentials and no checkpoint required
+        try:
+            if settings.INSTAGRAM_USERNAME and settings.INSTAGRAM_PASSWORD:
+                instagram_articles = self.scrape_instagram()
+                articles.extend(instagram_articles)
+                logger.info(f"Scraped {len(instagram_articles)} articles from Instagram")
+            else:
+                logger.info("Skipping Instagram scraping - no credentials provided")
+        except Exception as e:
+            if "Checkpoint required" in str(e):
+                logger.warning("Skipping Instagram scraping - security verification required")
+            else:
+                logger.error(f"Failed to scrape Instagram: {str(e)}")
         
         return articles 
