@@ -1,23 +1,28 @@
 services:
-  # Web API Service
+  # API Service
   - type: web
     name: football-digest-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: cd backend && PYTHONPATH=$PYTHONPATH:. gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
-    healthCheckPath: /health
-    healthCheckTimeout: 60
+    startCommand: cd backend && python -m app.main
     envVars:
       - key: PORT
         value: 10000
       - key: PYTHON_VERSION
         value: 3.9.0
-      - key: PYTHONPATH
-        value: /opt/render/project/src/backend
-      - key: DATABASE_URL
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
+    healthCheckPath: /health
+    autoDeploy: false
+
+  # Background Scheduler Service
+  - type: worker
+    name: football-digest-scheduler
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && python -m app.run_scheduler
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+    autoDeploy: false
 
   # Background Scraper Service
   - type: worker

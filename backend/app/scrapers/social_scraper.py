@@ -205,61 +205,84 @@ class SocialScraper:
             
         articles = []
         try:
-            for username in self.twitter_accounts:
-                try:
-                    # Get user info with caching
-                    user = await self._get_twitter_user(username)
-                    if not user:
-                        logger.warning(f"Could not find Twitter user: {username}")
-                        continue
-                    
-                    # Get tweets with rate limit handling
-                    tweets_response = await self._get_twitter_tweets(user['id'])
-                    if not tweets_response:
-                        continue
-                        
-                    tweets_data = tweets_response.get('data', [])
-                    if not tweets_data:
-                        continue
-                    
-                    # Process tweets
-                    for tweet in tweets_data:
-                        # Handle both dictionary and Response.Tweet objects
-                        if isinstance(tweet, dict):
-                            tweet_text = tweet.get('text', '')
-                            tweet_id = tweet.get('id')
-                            created_at = tweet.get('created_at')
-                            metrics = tweet.get('public_metrics', {})
+            # Process accounts in smaller batches to avoid rate limits
+            batch_size = 2
+            for i in range(0, len(self.twitter_accounts), batch_size):
+                batch = self.twitter_accounts[i:i + batch_size]
+                
+                for username in batch:
+                    try:
+                        # Check cache first
+                        if username in self.twitter_cache:
+                            user = self.twitter_cache[username]
+                            logger.info(f"Using cached data for Twitter user: {username}")
                         else:
-                            tweet_text = tweet.text
-                            tweet_id = tweet.id
-                            created_at = tweet.created_at
-                            metrics = tweet.public_metrics
-                            
-                        retweets = metrics.get('retweet_count', 0) if isinstance(metrics, dict) else metrics.retweet_count
-                        likes = metrics.get('like_count', 0) if isinstance(metrics, dict) else metrics.like_count
+                            # Get user info with rate limit handling
+                            user = await self._get_twitter_user(username)
+                            if not user:
+                                logger.warning(f"Could not find Twitter user: {username}")
+                                continue
                         
-                        if retweets > 10 or likes > 50:
-                            articles.append({
-                                'title': tweet_text[:100] + '...' if len(tweet_text) > 100 else tweet_text,
-                                'content': tweet_text,
-                                'source_url': f"https://twitter.com/{username}/status/{tweet_id}",
-                                'source_type': 'twitter',
-                                'published_at': created_at,
-                                'author': username,
-                                'engagement_count': retweets + likes
-                            })
-                    
-                    # Small delay between accounts
-                    await asyncio.sleep(2)
-                    
-                except Exception as e:
-                    logger.error(f"Error processing Twitter user {username}: {str(e)}")
-                    continue
+                        # Get tweets with rate limit handling
+                        tweets_response = await self._get_twitter_tweets(user['id'])
+                        if not tweets_response:
+                            continue
+                            
+                        tweets_data = tweets_response.get('data', [])
+                        if not tweets_data:
+                            logger.info(f"No tweets found for user: {username}")
+                            continue
+                        
+                        # Process tweets
+                        tweet_count = 0
+                        for tweet in tweets_data:
+                            try:
+                                # Handle both dictionary and Response.Tweet objects
+                                if isinstance(tweet, dict):
+                                    tweet_text = tweet.get('text', '')
+                                    tweet_id = tweet.get('id')
+                                    created_at = tweet.get('created_at')
+                                    metrics = tweet.get('public_metrics', {})
+                                else:
+                                    tweet_text = tweet.text
+                                    tweet_id = tweet.id
+                                    created_at = tweet.created_at
+                                    metrics = tweet.public_metrics
+                                    
+                                retweets = metrics.get('retweet_count', 0) if isinstance(metrics, dict) else metrics.retweet_count
+                                likes = metrics.get('like_count', 0) if isinstance(metrics, dict) else metrics.like_count
+                                
+                                if retweets > 10 or likes > 50:
+                                    articles.append({
+                                        'title': tweet_text[:100] + '...' if len(tweet_text) > 100 else tweet_text,
+                                        'content': tweet_text,
+                                        'source_url': f"https://twitter.com/{username}/status/{tweet_id}",
+                                        'source_type': 'twitter',
+                                        'published_at': created_at,
+                                        'author': username,
+                                        'engagement_count': retweets + likes
+                                    })
+                                    tweet_count += 1
+                                    
+                            except Exception as e:
+                                logger.error(f"Error processing tweet from {username}: {str(e)}")
+                                continue
+                                
+                        logger.info(f"Processed {tweet_count} tweets from {username}")
+                        
+                    except Exception as e:
+                        logger.error(f"Error processing Twitter user {username}: {str(e)}")
+                        continue
+                        
+                # Wait between batches to respect rate limits
+                if i + batch_size < len(self.twitter_accounts):
+                    logger.info("Waiting between Twitter API batches...")
+                    await asyncio.sleep(60)  # 1 minute between batches
                     
         except Exception as e:
             logger.error(f"Error scraping Twitter: {str(e)}")
             
+        logger.info(f"Scraped {len(articles)} articles from Twitter")
         return articles
 
     async def scrape_instagram(self) -> List[Dict]:

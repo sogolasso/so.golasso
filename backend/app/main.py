@@ -14,7 +14,10 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.core.config import settings
-from app.api.v1.api import api_router
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,9 +37,9 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to Football Digest API",
-        "version": settings.VERSION,
-        "docs_url": "/docs"
+        "status": "ok",
+        "message": "Football Digest API is running",
+        "version": settings.VERSION
     }
 
 # Health check endpoint
@@ -54,30 +57,40 @@ async def keep_alive():
     async with httpx.AsyncClient() as client:
         while True:
             try:
-                # Get the base URL from settings or environment
-                base_url = f"http://localhost:{settings.PORT}"
-                response = await client.get(f"{base_url}/health")
-                logging.info(f"Keep-alive ping successful: {response.status_code}")
+                # Use environment variable for host
+                host = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:10000")
+                response = await client.get(f"{host}/health")
+                logger.info(f"Keep-alive ping successful: {response.status_code}")
             except Exception as e:
-                logging.error(f"Keep-alive ping failed: {str(e)}")
+                logger.error(f"Keep-alive ping failed: {str(e)}")
             await asyncio.sleep(60)  # Ping every minute
 
 @app.on_event("startup")
-async def start_keep_alive():
-    """Start the keep-alive task when the application starts"""
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Starting up Football Digest API...")
+    # Start keep-alive task
     asyncio.create_task(keep_alive())
+    logger.info("Keep-alive task started")
 
-# Include API router
-app.include_router(api_router, prefix=settings.API_V1_STR)
+# Import and include API router
+try:
+    from app.api.v1.api import api_router
+    app.include_router(api_router, prefix=settings.API_V1_STR)
+    logger.info("API routes registered successfully")
+except Exception as e:
+    logger.error(f"Failed to register API routes: {str(e)}")
 
 if __name__ == "__main__":
-    # Get port from environment variable or use default
+    # Get port from environment variable
     port = int(os.environ.get("PORT", 10000))
+    logger.info(f"Starting server on port {port}")
     
-    # Run the application with the specified host and port
+    # Run the application
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        reload=False
+        reload=False,
+        log_level="info"
     ) 
