@@ -1,4 +1,5 @@
 services:
+  # Web API Service
   - type: web
     name: football-digest-api
     env: python
@@ -11,10 +12,26 @@ services:
         value: 3.9.0
       - key: PYTHONPATH
         value: /opt/render/project/src/backend
-      - key: OPENAI_API_KEY
-        sync: false  # This will prompt you to set it in Render dashboard
       - key: DATABASE_URL
-        sync: false  # This will prompt you to set it in Render dashboard
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Background Scraper Service
+  - type: worker
+    name: football-digest-scraper
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && PYTHONPATH=$PYTHONPATH:. python scripts/run_scheduler.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASSWORD
