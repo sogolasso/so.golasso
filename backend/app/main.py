@@ -1,9 +1,16 @@
+import os
+import sys
+from pathlib import Path
+
+# Add the backend directory to Python path
+backend_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(backend_dir))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.core.config import settings
 from app.api.v1.api import api_router
-import os
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
