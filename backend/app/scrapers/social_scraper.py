@@ -207,7 +207,7 @@ class SocialScraper:
                 loop = asyncio.get_event_loop()
                 user = await loop.run_in_executor(
                     None,
-                    lambda: self.twitter_client.get_user(username=username)
+                    lambda: self.twitter_client.get_user(id=None, username=username)
                 )
                 
                 if user and 'data' in user:
