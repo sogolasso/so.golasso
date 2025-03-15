@@ -164,6 +164,16 @@ class ScrapingScheduler:
 
             for data in source_data:
                 try:
+                    # Log the source data we're processing
+                    logger.info(f"Processing source: {data.get('title', 'No title')}")
+                    logger.info(f"Source type: {data.get('source_type', 'unknown')}")
+                    logger.info(f"Content length: {len(data.get('content', ''))}")
+                    
+                    # Skip if no content
+                    if not data.get('content'):
+                        logger.warning("Skipping item with no content")
+                        continue
+
                     # Generate article using AI
                     article_data = await self.ai_writer.generate_article(
                         title=data.get("title", ""),
@@ -172,7 +182,7 @@ class ScrapingScheduler:
                     )
                     
                     if article_data is None:
-                        logger.warning("Article generation skipped due to limits")
+                        logger.warning(f"Failed to generate article for: {data.get('title', 'No title')}")
                         continue
 
                     # Create article object
@@ -184,8 +194,8 @@ class ScrapingScheduler:
                         category=article_data["category"],
                         author_name=article_data["author_name"],
                         author_style=article_data["author_style"],
-                        source_url=data.get("url"),
-                        source_type=data.get("source_type"),
+                        source_url=data.get("source_url"),  # Fixed source_url field
+                        source_type=data.get("source_type", "news"),
                         status=ArticleStatus.PUBLISHED,
                         meta_description=article_data["meta_description"],
                         meta_keywords=article_data["meta_keywords"],
@@ -195,6 +205,8 @@ class ScrapingScheduler:
                     )
                     articles.append(article)
                     logger.info(f"Generated article: {article.title}")
+                    logger.info(f"Article length: {len(article.content)} characters")
+                    logger.info(f"Category: {article.category}")
 
                 except Exception as e:
                     logger.error(f"Error processing source item: {str(e)}", exc_info=True)
@@ -213,6 +225,12 @@ class ScrapingScheduler:
             logger.info(f"Saving {len(articles)} articles to database...")
             for article in articles:
                 try:
+                    # Check if article with same slug exists
+                    existing = self.db.query(Article).filter(Article.slug == article.slug).first()
+                    if existing:
+                        logger.info(f"Article with slug {article.slug} already exists, skipping")
+                        continue
+                        
                     self.db.add(article)
                     self.db.commit()
                     logger.info(f"Successfully saved and published article: {article.title}")

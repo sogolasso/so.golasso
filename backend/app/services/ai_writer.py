@@ -57,13 +57,13 @@ class AIWriter:
             logger.info("Sending request to OpenAI...")
             try:
                 response = await self.client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-3.5-turbo-16k",  # Using 16k model for longer content
                     messages=[
                         {"role": "system", "content": "You are a professional sports journalist specializing in football (soccer). Write engaging, accurate, and well-structured articles."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
-                    max_tokens=1000
+                    max_tokens=2000  # Increased token limit
                 )
                 logger.info("Successfully received response from OpenAI")
             except Exception as e:
@@ -72,7 +72,7 @@ class AIWriter:
             
             # Calculate cost (approximate)
             tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * 0.002  # $0.002 per 1K tokens for GPT-3.5
+            cost = (tokens_used / 1000) * 0.003  # $0.003 per 1K tokens for GPT-3.5-16k
             logger.info(f"Used {tokens_used} tokens (cost: ${cost:.4f})")
             
             # Track usage
@@ -80,6 +80,10 @@ class AIWriter:
             
             # Parse the response
             content = response.choices[0].message.content
+            if not content or len(content.strip()) < 100:
+                logger.error("Generated content is too short or empty")
+                return None
+                
             logger.info("Successfully generated article content")
             logger.info(f"Generated content length: {len(content)} characters")
             
@@ -92,6 +96,10 @@ class AIWriter:
             category = await self._determine_category(content)
             author_details = await self._generate_author_details(content)
             
+            # Generate slug from title
+            from slugify import slugify
+            slug = slugify(title)
+            
             # Create article data
             article_data = {
                 "title": title,
@@ -100,9 +108,9 @@ class AIWriter:
                 "category": category,
                 "author_style": author_details["style"],
                 "author_name": author_details["name"],
-                "meta_description": summary[:160],
+                "meta_description": summary[:160] if summary else content[:160],
                 "meta_keywords": self._extract_keywords(content),
-                "slug": self._generate_slug(title)
+                "slug": slug
             }
             
             # Cache the article
@@ -119,7 +127,7 @@ class AIWriter:
             
     def _create_prompt(self, title: str, source_text: str, source_type: str) -> str:
         """Create a prompt for the AI based on source type"""
-        return f"""Write a Brazilian football article based on the following information:
+        return f"""Write a football article based on the following information:
 
 Title: {title}
 
@@ -128,12 +136,13 @@ Source Content: {source_text}
 Type: {source_type}
 
 Guidelines:
-1. Write in Brazilian Portuguese
+1. Write in English
 2. Use engaging and dynamic language
 3. Include relevant context and background
 4. Keep it concise (500-700 words)
 5. Focus on key facts and analysis
 6. Maintain journalistic integrity
+7. If the source is in Portuguese, translate key information to English
 
 Please structure the article with:
 - Engaging introduction
